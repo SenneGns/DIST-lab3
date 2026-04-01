@@ -1,4 +1,4 @@
-package namingserver.ciscos.distlab3;
+package namingserver.ciscos.distlab3.repository;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
