@@ -1,63 +1,69 @@
 package namingserver.ciscos.distlab3.service;
 
 import namingserver.ciscos.distlab3.model.FileLookupResponse;
-import namingserver.ciscos.distlab3.model.NodeInfo;
-import namingserver.ciscos.distlab3.repository.NodeRepository;
+import namingserver.ciscos.distlab3.repository.Mappingfunction;
+
 import org.springframework.stereotype.Service;
 
-import java.util.Collection;
 import java.util.Map;
-import java.util.NavigableMap;
 
 @Service
 public class NamingService {
 
     private final HashService hashService;
-    private final NodeRepository nodeRepository;
+    private final Mappingfunction nodeRepository;
 
-    public NamingService(HashService hashService, NodeRepository nodeRepository) {
+    public NamingService(HashService hashService, Mappingfunction nodeRepository) {
         this.hashService = hashService;
         this.nodeRepository = nodeRepository;
     }
 
-    public NodeInfo registerNode(String nodeName, String ip) {
+    public void registerNode(String nodeName, String ip) {
         int nodeId = hashService.hash(nodeName);
-
-        NodeInfo node = new NodeInfo(nodeId, nodeName, ip);
-        nodeRepository.save(node);
-
-        return node;
+        nodeRepository.addNode(nodeId, ip);
     }
 
     public void removeNode(int nodeId) {
-        nodeRepository.deleteById(nodeId);
+        nodeRepository.removeNode(nodeId);
     }
 
-    public Collection<NodeInfo> getAllNodes() {
-        return nodeRepository.findAll();
+    public Map<Integer, String> getAllNodes() {
+        return nodeRepository.getAllNodes();
     }
 
     public FileLookupResponse findOwner(String fileName) {
-        if (nodeRepository.isEmpty()) {
+        if (Mappingfunction.getAllNodes().isEmpty()) {
             throw new IllegalStateException("No nodes registered in naming server.");
         }
 
         int fileHash = hashService.hash(fileName);
-        NavigableMap<Integer, NodeInfo> nodes = nodeRepository.getNodes();
+        Map<Integer, String> nodes = Mappingfunction.getAllNodes();
 
-        Map.Entry<Integer, NodeInfo> ownerEntry = nodes.lowerEntry(fileHash);
+        Integer bestHash = null;
 
-        if (ownerEntry == null) {
-            ownerEntry = nodes.lastEntry();
+        for (Integer nodeHash : nodes.keySet()) {
+            if (nodeHash < fileHash) {
+                if (bestHash == null || nodeHash > bestHash) {
+                    bestHash = nodeHash;
+                }
+            }
         }
 
-        NodeInfo owner = ownerEntry.getValue();
+        if (bestHash == null) {
+            for (Integer nodeHash : nodes.keySet()) {
+                if (bestHash == null || nodeHash > bestHash) {
+                    bestHash = nodeHash;
+                }
+            }
+        }
+
+        String ownerIp = nodes.get(bestHash);
 
         return new FileLookupResponse(
                 fileName,
                 fileHash,
-                owner.getId(),
-                owner.getIpAddress()
+                bestHash,
+                ownerIp
         );
     }
 }

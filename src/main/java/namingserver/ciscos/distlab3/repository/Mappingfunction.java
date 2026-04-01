@@ -11,7 +11,7 @@ import java.util.Map;
 @Service
 public class Mappingfunction {
 
-    private Map<Integer, String> nodes = new HashMap<>();
+    private static Map<Integer, String> nodes = new HashMap<>();
     private final ObjectMapper mapper = new ObjectMapper();
     private final File file = new File("nodes.json");
 
@@ -29,11 +29,11 @@ public class Mappingfunction {
         save();
     }
 
-    public Map<Integer, String> getAllNodes() {
+    public static Map<Integer, String> getAllNodes() {
         return nodes;
     }
 
-    private void save() {
+    private void save() { // save de huidige node structuur
         try {
             mapper.writeValue(file, nodes);
         } catch (Exception e) {
