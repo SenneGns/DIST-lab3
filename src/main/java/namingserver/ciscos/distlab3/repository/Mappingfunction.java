@@ -9,13 +9,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Service
-public class MappingService {
+public class Mappingfunction {
 
     private Map<Integer, String> nodes = new HashMap<>();
     private final ObjectMapper mapper = new ObjectMapper();
     private final File file = new File("nodes.json");
 
-    public MappingService() {
+    public Mappingfunction() {
         load();
     }
 
