@@ -32,12 +32,12 @@ public class NamingService {
     }
 
     public FileLookupResponse findOwner(String fileName) {
-        if (Mappingfunction.getAllNodes().isEmpty()) {
+        if (nodeRepository.getAllNodes().isEmpty()) {
             throw new IllegalStateException("No nodes registered in naming server.");
         }
 
         int fileHash = hashService.hash(fileName);
-        Map<Integer, String> nodes = Mappingfunction.getAllNodes();
+        Map<Integer, String> nodes = nodeRepository.getAllNodes();
 
         Integer bestHash = null;
 
