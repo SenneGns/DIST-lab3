@@ -20,7 +20,7 @@ public class Mappingfunction {
     }
 
     public void addNode(int hash, String ip) {
-        nodes.put(hash, ip); // we zetten een node in de MAP
+        nodes.put(hash, ip); // put node in map
         save();
     }
 
@@ -33,6 +33,7 @@ public class Mappingfunction {
         return nodes;
     }
 
+    //saves it in JSON
     private synchronized void save() { // save de huidige node structuur
         try {
             mapper.writeValue(file, nodes);
@@ -41,6 +42,7 @@ public class Mappingfunction {
         }
     }
 
+    //this will get loaded when starting up, puts it in nodes
     private synchronized void load() {
         try {
             if (file.exists()) {
