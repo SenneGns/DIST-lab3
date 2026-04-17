@@ -1,7 +1,6 @@
 package namingserver.ciscos.distlab3.service;
 
 import namingserver.ciscos.distlab3.model.FileLookupResponse;
-import namingserver.ciscos.distlab3.model.NodeInfo;
 import namingserver.ciscos.distlab3.repository.Mappingfunction;
 
 import org.springframework.stereotype.Service;
@@ -21,10 +20,10 @@ public class NamingService {
     }
 
     // METHODS -----------------------------------------------------------------------------
-    public NodeInfo registerNode(String nodeName, String ip) {
+    public void registerNode(String nodeName, String ip) {
         int nodeId = hashService.hash(nodeName);
         nodeRepository.addNode(nodeId, ip); // we voegen de node toe aan onze map
-        return new NodeInfo(nodeId, nodeName, ip);
+
     }
 
     public void removeNode(String nodeName) {

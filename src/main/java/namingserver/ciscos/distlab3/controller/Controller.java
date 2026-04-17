@@ -1,7 +1,6 @@
 package namingserver.ciscos.distlab3.controller;
 
 import namingserver.ciscos.distlab3.model.FileLookupResponse;
-import namingserver.ciscos.distlab3.model.NodeInfo;
 import namingserver.ciscos.distlab3.service.NamingService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +13,7 @@ public class Controller {
 
     private final NamingService namingService;
 
+    // CONSTRUCTOR
     public Controller(NamingService namingService) {
         this.namingService = namingService;
     }
@@ -37,10 +37,9 @@ public class Controller {
      * POST /naming/nodes?nodeName=node1&ip=192.168.1.1
      */
     @PostMapping("/nodes")
-    public ResponseEntity<NodeInfo> registerNode(@RequestParam String nodeName,
-                                                 @RequestParam String ip) {
-        NodeInfo node = namingService.registerNode(nodeName, ip);
-        return ResponseEntity.status(201).body(node);
+    public ResponseEntity<String> registerNode(@RequestParam String nodeName, @RequestParam String ip) {
+        namingService.registerNode(nodeName, ip);
+        return ResponseEntity.status(201).body("Node registered successfully");
     }
 
     /**

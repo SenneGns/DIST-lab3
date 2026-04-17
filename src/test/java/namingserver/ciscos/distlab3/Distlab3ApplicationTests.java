@@ -1,7 +1,6 @@
 package namingserver.ciscos.distlab3;
 
 import namingserver.ciscos.distlab3.model.FileLookupResponse;
-import namingserver.ciscos.distlab3.model.NodeInfo;
 import namingserver.ciscos.distlab3.repository.Mappingfunction;
 import namingserver.ciscos.distlab3.service.HashService;
 import namingserver.ciscos.distlab3.service.NamingService;
@@ -59,11 +58,10 @@ class Distlab3ApplicationTests {
         repo = new Mappingfunction();
         namingService = new NamingService(hasher, repo);
 
-        NodeInfo node = namingService.registerNode("nodeA", "10.0.0.1");
-        assertEquals(1000, node.getId());
-        assertEquals("nodeA", node.getName());
-        assertEquals("10.0.0.1", node.getIpAddress());
-        assertEquals("10.0.0.1", namingService.getAllNodes().get(1000));
+        namingService.registerNode("nodeA", "10.0.0.1");
+        Map<Integer, String> nodes = namingService.getAllNodes();
+        assertEquals(1, nodes.size());
+        assertEquals("10.0.0.1", nodes.get(1000));
     }
 
     @Test
