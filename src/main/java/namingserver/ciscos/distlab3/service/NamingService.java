@@ -13,34 +13,41 @@ public class NamingService {
     private final HashService hashService;
     private final Mappingfunction nodeRepository;
 
+    // CONSTRUCTOR --------------------------------------------------------------------------
     public NamingService(HashService hashService, Mappingfunction nodeRepository) {
         this.hashService = hashService;
         this.nodeRepository = nodeRepository;
     }
 
+    // METHODS -----------------------------------------------------------------------------
     public void registerNode(String nodeName, String ip) {
         int nodeId = hashService.hash(nodeName);
-        nodeRepository.addNode(nodeId, ip);
+        nodeRepository.addNode(nodeId,ip); // we voegen de node toe aan onze map
     }
 
-    public void removeNode(int nodeId) {
+    public void removeNode(String nodeName) {
+        int nodeId = hashService.hash(nodeName);
         nodeRepository.removeNode(nodeId);
     }
 
-    public Map<Integer, String> getAllNodes() {
+    public Map<Integer, String> getAllNodes()
+    {
         return nodeRepository.getAllNodes();
     }
 
+
     public FileLookupResponse findOwner(String fileName) {
+        // we kijken of er uberhaupt wel nodes zijn
         if (nodeRepository.getAllNodes().isEmpty()) {
             throw new IllegalStateException("No nodes registered in naming server.");
         }
-
+        // bastandsnaam wordt omgezet naar een hash waarde/getal --> bepaald waar op de ring bestand is/moet komen
         int fileHash = hashService.hash(fileName);
+        // we halen alle nodes op
         Map<Integer, String> nodes = nodeRepository.getAllNodes();
-
+        // kern van het algorithme: zoeken onder alle nodehashes naar degene die kleiner zijn dan filehash
+        // en pakt hiervan de grootste
         Integer bestHash = null;
-
         for (Integer nodeHash : nodes.keySet()) {
             if (nodeHash < fileHash) {
                 if (bestHash == null || nodeHash > bestHash) {
@@ -48,7 +55,8 @@ public class NamingService {
                 }
             }
         }
-
+        // als er geen nodehash kleiner is dan de filehash -->("t"erugspringen in de ring")
+        // dan kiezen we de grootste nodehash van allemaal
         if (bestHash == null) {
             for (Integer nodeHash : nodes.keySet()) {
                 if (bestHash == null || nodeHash > bestHash) {
@@ -56,14 +64,9 @@ public class NamingService {
                 }
             }
         }
-
+        // we zoeken het IP-adress van die owner
         String ownerIp = nodes.get(bestHash);
 
-        return new FileLookupResponse(
-                fileName,
-                fileHash,
-                bestHash,
-                ownerIp
-        );
+        return new FileLookupResponse(fileName, fileHash, bestHash, ownerIp );
     }
 }

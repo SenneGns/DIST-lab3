@@ -13,7 +13,7 @@ public class FileLookupResponse {
     public FileLookupResponse(String fileName, int fileHash, int ownerNodeId, String ownerIpAddress) {
         this.fileName = fileName;
         this.fileHash = fileHash;
-        this.ownerNodeId = ownerNodeId;
+        this.ownerNodeId = ownerNodeId; // de hash van de owner node
         this.ownerIpAddress = ownerIpAddress;
     }
 

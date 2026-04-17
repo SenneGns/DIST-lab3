@@ -20,7 +20,7 @@ public class Mappingfunction {
     }
 
     public void addNode(int hash, String ip) {
-        nodes.put(hash, ip);
+        nodes.put(hash, ip); // we zetten een node in de MAP
         save();
     }
 

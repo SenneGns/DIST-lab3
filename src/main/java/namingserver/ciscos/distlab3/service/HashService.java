@@ -1,5 +1,4 @@
 package namingserver.ciscos.distlab3.service;
-
 import org.springframework.stereotype.Service;
 
 @Service
