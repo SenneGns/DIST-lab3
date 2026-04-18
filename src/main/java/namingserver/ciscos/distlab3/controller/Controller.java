@@ -38,8 +38,12 @@ public class Controller {
      */
     @PostMapping("/nodes")
     public ResponseEntity<String> registerNode(@RequestParam String nodeName, @RequestParam String ip) {
-        namingService.registerNode(nodeName, ip);
-        return ResponseEntity.status(201).body("Node registered successfully");
+        try {
+            namingService.registerNode(nodeName, ip);
+            return ResponseEntity.status(201).body("Node registered successfully");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(409).body(e.getMessage());
+        }
     }
 
     /**

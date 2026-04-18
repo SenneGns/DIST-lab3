@@ -22,8 +22,16 @@ public class NamingService {
     // METHODS -----------------------------------------------------------------------------
     public void registerNode(String nodeName, String ip) {
         int nodeId = hashService.hash(nodeName);
-        nodeRepository.addNode(nodeId, ip); // we voegen de node toe aan onze map
 
+        if (nodeRepository.getAllNodes().containsKey(nodeId)) {
+            throw new IllegalArgumentException("Node already exists");
+        }
+
+        if (nodeRepository.getAllNodes().containsValue(ip)) {
+            throw new IllegalArgumentException("IP address already exists");
+        }
+
+        nodeRepository.addNode(nodeId, ip);
     }
 
     public void removeNode(String nodeName) {
