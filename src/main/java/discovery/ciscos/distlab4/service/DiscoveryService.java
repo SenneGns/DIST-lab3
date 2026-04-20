@@ -24,9 +24,4 @@ public class DiscoveryService {
         }
     }
 
-    public static void main(String[] args) {
-        DiscoveryService ds = new DiscoveryService();
-        // 224.0.0.1 is het standaard adres voor alle systemen op het lokale subnet
-        ds.sendMulticast("DISCOVERY_REQUEST:NodeA", "224.0.0.100", 4567);
-    }
 }
