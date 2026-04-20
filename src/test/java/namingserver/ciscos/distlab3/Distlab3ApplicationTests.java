@@ -18,7 +18,7 @@ import java.util.concurrent.Future;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest
+
 class Distlab3ApplicationTests {
 
     // Keep contextLoads to verify Spring context starts

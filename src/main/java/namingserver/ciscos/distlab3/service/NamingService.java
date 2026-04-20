@@ -1,7 +1,6 @@
 package namingserver.ciscos.distlab3.service;
 
 import namingserver.ciscos.distlab3.model.FileLookupResponse;
-import namingserver.ciscos.distlab3.model.NodeInfo;
 import namingserver.ciscos.distlab3.repository.Mappingfunction;
 
 import org.springframework.stereotype.Service;
@@ -21,19 +20,18 @@ public class NamingService {
     }
 
     // METHODS -----------------------------------------------------------------------------
-    public NodeInfo registerNode(String nodeName, String ip) {
+    public void registerNode(String nodeName, String ip) {
         int nodeId = hashService.hash(nodeName);
-
-        if (nodeRepository.getAllNodes().containsKey(nodeId)) {
-            throw new IllegalArgumentException("Node already exists");
+        if(nodeRepository.getAllNodes().containsKey(nodeId)) {
+            throw new IllegalArgumentException("Node Already exists");
         }
+        nodeRepository.addNode(nodeId, ip); // we voegen de node toe aan onze map
 
-        if (nodeRepository.getAllNodes().containsValue(ip)) {
-            throw new IllegalArgumentException("IP address already exists");
+        if(nodeRepository.getAllNodes().containsKey(ip)) {
+            throw new IllegalArgumentException("IP addres Already exists");
         }
+        nodeRepository.addNode(nodeId, ip); // we voegen de node toe aan onze map
 
-        nodeRepository.addNode(nodeId, ip);
-        return null;
     }
 
     public void removeNode(String nodeName) {
