@@ -28,7 +28,7 @@ public class MulticastListenerService {
         this.nodeRepository = nodeRepository;
     }
 
-    @PostConstruct
+    @PostConstruct //Spring calls the methods annotated with @PostConstruct only once, just after the initialization of bean properties.
     public void start() {
         Thread listenerThread = new Thread(this::listen, "multicast-listener");
         listenerThread.setDaemon(true);
