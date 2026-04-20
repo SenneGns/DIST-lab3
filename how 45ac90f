@@ -1,0 +1,22 @@
+[33m2e7b99c[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m HEAD@{0}: commit: fixed naming service & multicast part naming server
+[33m45ac90f[m HEAD@{1}: commit: test nr4
+[33me02a101[m HEAD@{2}: pull: Fast-forward
+[33mdb1fe08[m HEAD@{3}: commit: adding file
+[33m21bfe6e[m HEAD@{4}: commit: add commit
+[33m627b599[m HEAD@{5}: pull: Fast-forward
+[33md069e0a[m HEAD@{6}: commit: paar changes naamverandering
+[33m8502d74[m HEAD@{7}: pull: Fast-forward
+[33m72a959a[m HEAD@{8}: commit (merge): merge main
+[33md0ebba4[m HEAD@{9}: commit: veranderen functie naam
+[33m995f39b[m HEAD@{10}: commit (merge): Senne deel
+[33mbdbcd9b[m HEAD@{11}: reset: moving to HEAD
+[33mbdbcd9b[m HEAD@{12}: checkout: moving from main to main
+[33mbdbcd9b[m HEAD@{13}: reset: moving to HEAD
+[33mbdbcd9b[m HEAD@{14}: commit: senne code mapping
+[33md4fcb46[m[33m ([m[1;31morigin/senne[m[33m, [m[1;31morigin/Wout[m[33m, [m[1;32msenne[m[33m)[m HEAD@{15}: checkout: moving from senne to main
+[33md4fcb46[m[33m ([m[1;31morigin/senne[m[33m, [m[1;31morigin/Wout[m[33m, [m[1;32msenne[m[33m)[m HEAD@{16}: checkout: moving from main to senne
+[33md4fcb46[m[33m ([m[1;31morigin/senne[m[33m, [m[1;31morigin/Wout[m[33m, [m[1;32msenne[m[33m)[m HEAD@{17}: checkout: moving from senne to main
+[33md4fcb46[m[33m ([m[1;31morigin/senne[m[33m, [m[1;31morigin/Wout[m[33m, [m[1;32msenne[m[33m)[m HEAD@{18}: checkout: moving from senne to senne
+[33md4fcb46[m[33m ([m[1;31morigin/senne[m[33m, [m[1;31morigin/Wout[m[33m, [m[1;32msenne[m[33m)[m HEAD@{19}: checkout: moving from main to senne
+[33md4fcb46[m[33m ([m[1;31morigin/senne[m[33m, [m[1;31morigin/Wout[m[33m, [m[1;32msenne[m[33m)[m HEAD@{20}: Branch: renamed refs/heads/master to refs/heads/main
+[33md4fcb46[m[33m ([m[1;31morigin/senne[m[33m, [m[1;31morigin/Wout[m[33m, [m[1;32msenne[m[33m)[m HEAD@{22}: commit (initial): initial spring boot setup
