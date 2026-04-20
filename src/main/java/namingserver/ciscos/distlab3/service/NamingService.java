@@ -23,11 +23,11 @@ public class NamingService {
     public void registerNode(String nodeName, String ip) {
         int nodeId = hashService.hash(nodeName);
 
-        if (nodeRepository.getAllNodes().containsKey(nodeId)) {
+        if (nodeRepository.getAllNodes().containsKey(nodeId)) { //Node with the same name
             throw new IllegalArgumentException("Node already exists");
         }
 
-        if (nodeRepository.getAllNodes().containsValue(ip)) {
+        if (nodeRepository.getAllNodes().containsValue(ip)) { //Node with the same id
             throw new IllegalArgumentException("IP address already exists");
         }
 
