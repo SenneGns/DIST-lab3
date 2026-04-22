@@ -3,6 +3,7 @@ package discovery.ciscos.distlab4.multicast;
 import jakarta.annotation.PostConstruct;
 import namingserver.ciscos.distlab3.repository.Mappingfunction;
 import namingserver.ciscos.distlab3.service.HashService;
+import namingserver.ciscos.distlab3.service.MembershipService;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -22,12 +23,15 @@ public class MulticastListenerService {
 
     private final HashService hashService;
     private final Mappingfunction nodeRepository;
+    private final MembershipService membershipService;
 
-    public MulticastListenerService(HashService hashService, Mappingfunction nodeRepository) {
+    public MulticastListenerService(HashService hashService, Mappingfunction nodeRepository, MembershipService membershipService) {
         this.hashService = hashService;
         this.nodeRepository = nodeRepository;
+        this.membershipService = membershipService;
     }
 
+    // Start de listener op een aparte thread zodra Spring de service initialiseert
     @PostConstruct //Spring calls the methods annotated with @PostConstruct only once, just after the initialization of bean properties.
     public void start() {
         Thread listenerThread = new Thread(this::listen, "multicast-listener");
@@ -35,6 +39,7 @@ public class MulticastListenerService {
         listenerThread.start();
     }
 
+    // Luistert continu op de multicastgroep voor bootstrapberichten van nodes
     private void listen() {
         try (MulticastSocket socket = new MulticastSocket(MULTICAST_PORT)) {
             InetAddress group = InetAddress.getByName(MULTICAST_GROUP);
@@ -54,6 +59,8 @@ public class MulticastListenerService {
         }
     }
 
+    // Verwerkt een via multicast ontvangen UDP-pakket en controleert of het een geldig bootstrapbericht bevat.
+    // want is eigenlijk ook udp die multicast
     private void handlePacket(DatagramPacket packet) {
         String message = new String(
                 packet.getData(),
@@ -81,20 +88,22 @@ public class MulticastListenerService {
         handleBootstrap(nodeName, nodeIp, packet.getAddress());
     }
 
+    // Registreert de node en zet ze meteen als actief in de membershipstatus
     private void handleBootstrap(String nodeName, String nodeIp, InetAddress senderAddress) { //sender address = van wie het kwam
         int nodesBefore = nodeRepository.getAllNodes().size();
         int nodeHash = hashService.hash(nodeName);
 
         if (!nodeRepository.getAllNodes().containsKey(nodeHash)) {
             nodeRepository.addNode(nodeHash, nodeIp);
+            membershipService.recordHeartbeat(nodeName, nodeIp);
             System.out.println("[NS] Node geregistreerd: " + nodeName + " -> hash=" + nodeHash + ", ip=" + nodeIp);
         } else {
             System.out.println("[NS] Node bestaat al: " + nodeName + " -> hash=" + nodeHash);
         }
-
         sendBootstrapAck(senderAddress, nodesBefore);
     }
 
+    // Stuurt een unicast bevestiging terug met het aantal nodes dat al geregistreerd was
     private void sendBootstrapAck(InetAddress receiverAddress, int nodesBefore) {
         String response = "BOOTSTRAP_ACK:" + nodesBefore;
         byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
