@@ -36,7 +36,7 @@ public class NamingService {
             throw new IllegalArgumentException("Node already exists");
         }
 
-        if (nodeRepository.getAllNodes().containsValue(ip)) { //Node with the same id
+        if (nodeRepository.getAllNodes().containsValue(ip)) { //Node with the same ip address
             throw new IllegalArgumentException("IP address already exists");
         }
 
