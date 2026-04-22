@@ -1,10 +1,13 @@
 package namingserver.ciscos.distlab3.controller;
 
 import namingserver.ciscos.distlab3.model.FileLookupResponse;
+import namingserver.ciscos.distlab3.model.MemberStatus;
+import namingserver.ciscos.distlab3.service.MembershipService;
 import namingserver.ciscos.distlab3.service.NamingService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -12,10 +15,12 @@ import java.util.Map;
 public class Controller {
 
     private final NamingService namingService;
+    private final MembershipService membershipService;
 
     // CONSTRUCTOR
-    public Controller(NamingService namingService) {
+    public Controller(NamingService namingService, MembershipService membershipService) {
         this.namingService = namingService;
+        this.membershipService = membershipService;
     }
 
     /**
@@ -44,6 +49,49 @@ public class Controller {
         }catch (IllegalStateException e) {
             return ResponseEntity.status(503).body(e.getMessage());
         }
+    }
+
+    /**
+     * Heartbeat from a node to keep it RUNNING
+     * POST /naming/membership/heartbeat?nodeName=node1&ip=192.168.1.1
+     */
+    @PostMapping("/membership/heartbeat")
+    public ResponseEntity<MemberStatus> heartbeat(@RequestParam String nodeName,
+                                                  @RequestParam(required = false) String ip) {
+        MemberStatus status = membershipService.recordHeartbeat(nodeName, ip);
+        return ResponseEntity.ok(status);
+    }
+
+    /**
+     * Inspect current membership runtime states
+     * GET /naming/membership/status
+     */
+    @GetMapping("/membership/status")
+    public ResponseEntity<List<MemberStatus>> membershipStatus() {
+        List<MemberStatus> list = membershipService.listStatuses();
+        return ResponseEntity.ok(list);
+    }
+
+    /**
+     * Graceful leave by node name.
+     * POST /naming/nodes/leave?nodeName=node1
+     */
+    @PostMapping(value = "/nodes/leave", params = "nodeName")
+    public ResponseEntity<String> leaveByName(@RequestParam String nodeName) {
+        boolean existed = namingService.leaveNodeByName(nodeName);
+        String msg = existed ? "Node left gracefully" : "Node not found (idempotent)";
+        return ResponseEntity.ok(msg);
+    }
+
+    /**
+     * Graceful leave by node ID.
+     * POST /naming/nodes/{nodeId}/leave
+     */
+    @PostMapping("/nodes/{nodeId}/leave")
+    public ResponseEntity<String> leaveById(@PathVariable int nodeId) {
+        boolean existed = namingService.leaveNodeById(nodeId);
+        String msg = existed ? "Node left gracefully" : "Node not found (idempotent)";
+        return ResponseEntity.ok(msg);
     }
 
     /**
