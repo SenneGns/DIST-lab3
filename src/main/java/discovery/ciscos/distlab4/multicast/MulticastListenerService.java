@@ -81,7 +81,7 @@ public class MulticastListenerService {
         handleBootstrap(nodeName, nodeIp, packet.getAddress());
     }
 
-    private void handleBootstrap(String nodeName, String nodeIp, InetAddress senderAddress) {
+    private void handleBootstrap(String nodeName, String nodeIp, InetAddress senderAddress) { //sender address = van wie het kwam
         int nodesBefore = nodeRepository.getAllNodes().size();
         int nodeHash = hashService.hash(nodeName);
 
