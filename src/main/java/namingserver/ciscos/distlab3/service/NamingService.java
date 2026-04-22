@@ -3,6 +3,7 @@ package namingserver.ciscos.distlab3.service;
 import namingserver.ciscos.distlab3.model.FileLookupResponse;
 import namingserver.ciscos.distlab3.repository.Mappingfunction;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -12,11 +13,19 @@ public class NamingService {
 
     private final HashService hashService;
     private final Mappingfunction nodeRepository;
+    private final MembershipService membershipService;
 
     // CONSTRUCTOR --------------------------------------------------------------------------
-    public NamingService(HashService hashService, Mappingfunction nodeRepository) {
+    @Autowired
+    public NamingService(HashService hashService, Mappingfunction nodeRepository, MembershipService membershipService) {
         this.hashService = hashService;
         this.nodeRepository = nodeRepository;
+        this.membershipService = membershipService;
+    }
+
+    // Backward-compatible constructor for tests and simple usage (no Spring injection of MembershipService)
+    public NamingService(HashService hashService, Mappingfunction nodeRepository) {
+        this(hashService, nodeRepository, new MembershipService(nodeRepository, hashService));
     }
 
     // METHODS -----------------------------------------------------------------------------
@@ -27,7 +36,7 @@ public class NamingService {
             throw new IllegalArgumentException("Node already exists");
         }
 
-        if (nodeRepository.getAllNodes().containsValue(ip)) { //Node with the same id
+        if (nodeRepository.getAllNodes().containsValue(ip)) { //Node with the same ip address
             throw new IllegalArgumentException("IP address already exists");
         }
 
@@ -37,10 +46,25 @@ public class NamingService {
     public void removeNode(String nodeName) {
         int nodeId = hashService.hash(nodeName);
         nodeRepository.removeNode(nodeId);
+        membershipService.removeRuntime(nodeId);
     }
 
     public void removeNodeById(int nodeId) {
         nodeRepository.removeNode(nodeId);
+        membershipService.removeRuntime(nodeId);
+    }
+
+    // Graceful leave operations (idempotent)
+    public boolean leaveNodeById(int nodeId) {
+        boolean existed = nodeRepository.getAllNodes().containsKey(nodeId);
+        nodeRepository.removeNode(nodeId); // idempotent remove
+        membershipService.removeRuntime(nodeId);
+        return existed;
+    }
+
+    public boolean leaveNodeByName(String nodeName) {
+        int nodeId = hashService.hash(nodeName);
+        return leaveNodeById(nodeId);
     }
 
     public Map<Integer, String> getAllNodes() {

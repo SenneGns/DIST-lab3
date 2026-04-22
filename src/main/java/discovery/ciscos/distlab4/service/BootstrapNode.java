@@ -1,30 +1,22 @@
 package discovery.ciscos.distlab4.service;
 
-import discovery.ciscos.distlab4.service.DiscoveryService;
-
 public class BootstrapNode {
-    public String Nodename;
-    public String IP;
-    public String Groupaddress = "224.0.0.100";
-    public final int port = 4567;
-    private DiscoveryService discovery;
+    private final String nodeName;
+    private final String ip;
+    private final DiscoveryService discovery = new DiscoveryService();
 
     // constructor
-    public BootstrapNode(String Nodename, String IP) {
-        this.Nodename = Nodename;
-        this.IP = IP;
+    public BootstrapNode(String nodeName, String ip) {
+        this.nodeName = nodeName;
+        this.ip = ip;
     }
 
-    // methods
-    public String getNodeName() {
-        return Nodename;
-    }
-    public String getIP() {
-        return IP;
-    }
+    // getters
+    public String getNodeName() { return nodeName; }
+    public String getIP() { return ip; }
 
-    public void bootstrap (){
-        String message = this.Nodename + ":" + this.IP;
-        this.discovery.sendMulticast(message,Groupaddress,port);
+    public void bootstrap() {
+        // Send BOOTSTRAP:<name>:<ip> to the agreed multicast group
+        discovery.sendBootstrap(nodeName, ip);
     }
 }
