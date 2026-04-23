@@ -22,12 +22,13 @@ public class DiscoveryService {
         sendMulticast(msg, GROUP, GROUP_PORT);
     }
 
+    //send message to namingserver and nodes
     public void sendMulticast(String message, String groupAddress, int port) {
         try (DatagramSocket socket = new DatagramSocket()) {
-            InetAddress group = InetAddress.getByName(groupAddress);
+            InetAddress group = InetAddress.getByName(groupAddress); //geven ze dus mee
             byte[] buffer = message.getBytes(StandardCharsets.UTF_8);
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, port);
-            socket.send(packet);
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, port);//dus multicast
+            socket.send(packet); //to nodes and server
             System.out.println("[Discovery] Multicast verzonden: " + message + " -> " + groupAddress + ":" + port);
         } catch (Exception e) {
             System.err.println("[Discovery] Fout bij versturen multicast: " + e.getMessage());

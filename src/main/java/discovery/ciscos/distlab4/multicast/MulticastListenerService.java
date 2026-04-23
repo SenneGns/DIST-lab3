@@ -52,7 +52,7 @@ public class MulticastListenerService {
                 byte[] buffer = new byte[512];
                 DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
                 socket.receive(packet);
-                handlePacket(packet);
+                handlePacket(packet); //aka als er iets binnenkomt
             }
         } catch (IOException e) {
             System.err.println("[NS] Multicast listener fout: " + e.getMessage());
@@ -61,7 +61,7 @@ public class MulticastListenerService {
 
     // Verwerkt een via multicast ontvangen UDP-pakket en controleert of het een geldig bootstrapbericht bevat.
     // want is eigenlijk ook udp die multicast
-    private void handlePacket(DatagramPacket packet) {
+    private void handlePacket(DatagramPacket packet) { //wat het doet ermee
         String message = new String(
                 packet.getData(),
                 packet.getOffset(),
@@ -100,7 +100,7 @@ public class MulticastListenerService {
         } else {
             System.out.println("[NS] Node bestaat al: " + nodeName + " -> hash=" + nodeHash);
         }
-        sendBootstrapAck(senderAddress, nodesBefore);
+        sendBootstrapAck(senderAddress, nodesBefore); //geeft ook nog ack terug
     }
 
     // Stuurt een unicast bevestiging terug met het aantal nodes dat al geregistreerd was
@@ -112,7 +112,7 @@ public class MulticastListenerService {
             DatagramPacket responsePacket = new DatagramPacket(
                     responseBytes,
                     responseBytes.length,
-                    receiverAddress,
+                    receiverAddress, //unicast naar de node als ACK
                     UNICAST_REPLY_PORT
             );
             socket.send(responsePacket);
