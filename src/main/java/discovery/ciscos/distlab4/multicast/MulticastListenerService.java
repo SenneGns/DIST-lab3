@@ -11,6 +11,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.nio.charset.StandardCharsets;
+import java.util.TreeMap;
 
 @Service
 public class MulticastListenerService {
@@ -81,8 +82,9 @@ public class MulticastListenerService {
         handleBootstrap(nodeName, nodeIp, packet.getAddress());
     }
 
-    private void handleBootstrap(String nodeName, String nodeIp, InetAddress senderAddress) { //sender address = van wie het kwam
-        int nodesBefore = nodeRepository.getAllNodes().size();
+    private void handleBootstrap(String nodeName, String nodeIp, InetAddress senderAddress) {
+        TreeMap<Integer, String> before = new TreeMap<>(nodeRepository.getAllNodes());
+        int nodesBefore = before.size();
         int nodeHash = hashService.hash(nodeName);
 
         if (!nodeRepository.getAllNodes().containsKey(nodeHash)) {
@@ -93,6 +95,50 @@ public class MulticastListenerService {
         }
 
         sendBootstrapAck(senderAddress, nodesBefore);
+
+        if (nodesBefore > 0) {
+            sendNeighborAcks(nodeHash, senderAddress, before);
+        }
+    }
+
+    /**
+     * Computes which existing nodes are the ring-neighbours of the new node
+     * and sends NODE_ACK unicast messages to it so it can set its previousID/nextID.
+     *
+     * NODE_ACK:NEXT:<senderID>:<oldNext>  → new node sets previousID=senderID, nextID=oldNext
+     * NODE_ACK:PREV:<senderID>:<oldPrev>  → new node sets nextID=senderID,     previousID=oldPrev
+     */
+    private void sendNeighborAcks(int newHash, InetAddress senderAddress, TreeMap<Integer, String> before) {
+        // snapshot without the new node
+        before.remove(newHash);
+        if (before.isEmpty()) return;
+
+        // largest existing hash < newHash (wraps to last if none found)
+        Integer prevKey = before.floorKey(newHash - 1);
+        if (prevKey == null) prevKey = before.lastKey();
+
+        // smallest existing hash > newHash (wraps to first if none found)
+        Integer nextKey = before.ceilingKey(newHash + 1);
+        if (nextKey == null) nextKey = before.firstKey();
+
+        // prevKey node had nextKey as its next; now new node sits between them
+        sendNodeAck(senderAddress, "NEXT", prevKey, nextKey);
+
+        // nextKey node had prevKey as its prev; now new node sits between them
+        if (!nextKey.equals(prevKey)) {
+            sendNodeAck(senderAddress, "PREV", nextKey, prevKey);
+        }
+    }
+
+    private void sendNodeAck(InetAddress receiver, String type, int senderID, int oldNeighbor) {
+        String msg = "NODE_ACK:" + type + ":" + senderID + ":" + oldNeighbor;
+        byte[] bytes = msg.getBytes(StandardCharsets.UTF_8);
+        try (DatagramSocket socket = new DatagramSocket()) {
+            socket.send(new DatagramPacket(bytes, bytes.length, receiver, UNICAST_REPLY_PORT));
+            System.out.println("[NS] NODE_ACK gestuurd: " + msg + " -> " + receiver.getHostAddress());
+        } catch (IOException e) {
+            System.err.println("[NS] Fout bij versturen NODE_ACK: " + e.getMessage());
+        }
     }
 
     private void sendBootstrapAck(InetAddress receiverAddress, int nodesBefore) {

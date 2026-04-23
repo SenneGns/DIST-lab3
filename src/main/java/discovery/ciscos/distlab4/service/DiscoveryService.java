@@ -35,25 +35,81 @@ public class DiscoveryService {
     }
 
     /**
-     * Wait for a unicast ACK on ACK_PORT. Returns nodesBefore if received, otherwise null on timeout.
+     * Listens on ACK_PORT for the duration of the timeout, collecting:
+     *  - BOOTSTRAP_ACK:<nodesBefore>   from the naming server
+     *  - NODE_ACK:NEXT:<senderID>:<oldNext>  → previousID = senderID, nextID = oldNext
+     *  - NODE_ACK:PREV:<senderID>:<oldPrev>  → nextID = senderID, previousID = oldPrev
+     *
+     * Returns a configured RingState, or null if no BOOTSTRAP_ACK was received.
      */
-    public Integer awaitBootstrapAck(Duration timeout) {
+    public RingState awaitBootstrapAck(int currentID, Duration timeout) {
         long deadline = System.currentTimeMillis() + timeout.toMillis();
+        Integer nodesBefore = null;
+        Integer previousID = null;
+        Integer nextID = null;
+
         try (DatagramSocket socket = new DatagramSocket(ACK_PORT)) {
-            socket.setSoTimeout((int) Math.max(1, timeout.toMillis()));
-            byte[] buf = new byte[256];
-            DatagramPacket packet = new DatagramPacket(buf, buf.length);
-            socket.receive(packet);
-            String resp = new String(packet.getData(), packet.getOffset(), packet.getLength(), StandardCharsets.UTF_8).trim();
-            System.out.println("[Discovery] ACK ontvangen: " + resp);
-            if (resp.startsWith("BOOTSTRAP_ACK:")) {
-                String n = resp.substring("BOOTSTRAP_ACK:".length()).trim();
-                try { return Integer.parseInt(n); } catch (NumberFormatException ignored) { return null; }
+            while (System.currentTimeMillis() < deadline) {
+                int remaining = (int) (deadline - System.currentTimeMillis());
+                if (remaining <= 0) break;
+                socket.setSoTimeout(remaining);
+
+                byte[] buf = new byte[256];
+                DatagramPacket packet = new DatagramPacket(buf, buf.length);
+                try {
+                    socket.receive(packet);
+                } catch (Exception e) {
+                    break; // timeout
+                }
+
+                String resp = new String(packet.getData(), packet.getOffset(), packet.getLength(), StandardCharsets.UTF_8).trim();
+                System.out.println("[Discovery] Ontvangen: " + resp);
+
+                if (resp.startsWith("BOOTSTRAP_ACK:")) {
+                    try {
+                        nodesBefore = Integer.parseInt(resp.substring("BOOTSTRAP_ACK:".length()).trim());
+                    } catch (NumberFormatException ignored) {}
+
+                } else if (resp.startsWith("NODE_ACK:NEXT:")) {
+                    // NODE_ACK:NEXT:<senderID>:<oldNext>
+                    // senderID is our previousID, oldNext is our nextID
+                    String[] parts = resp.split(":");
+                    if (parts.length == 4) {
+                        previousID = Integer.parseInt(parts[2]);
+                        nextID     = Integer.parseInt(parts[3]);
+                    }
+
+                } else if (resp.startsWith("NODE_ACK:PREV:")) {
+                    // NODE_ACK:PREV:<senderID>:<oldPrev>
+                    // senderID is our nextID, oldPrev is our previousID
+                    String[] parts = resp.split(":");
+                    if (parts.length == 4) {
+                        nextID     = Integer.parseInt(parts[2]);
+                        previousID = Integer.parseInt(parts[3]);
+                    }
+                }
             }
         } catch (Exception e) {
-            long remaining = deadline - System.currentTimeMillis();
-            System.out.println("[Discovery] Geen ACK binnen timeout (" + timeout.toMillis() + "ms): " + e.getMessage());
+            System.out.println("[Discovery] Socket fout: " + e.getMessage());
         }
-        return null;
+
+        if (nodesBefore == null) {
+            System.out.println("[Discovery] Geen BOOTSTRAP_ACK ontvangen binnen timeout.");
+            return null;
+        }
+
+        RingState state = new RingState(currentID);
+
+        if (nodesBefore < 1) {
+            // enige node in het netwerk: prev = next = zichzelf
+            System.out.println("[Discovery] Enige node in netwerk. prev=next=currentID=" + currentID);
+        } else {
+            // gebruik ontvangen neighbour info
+            if (previousID != null) state.setPreviousID(previousID);
+            if (nextID != null)     state.setNextID(nextID);
+            System.out.println("[Discovery] Ring state ingesteld: " + state);
+        }
+
+        return state;
     }
 }
