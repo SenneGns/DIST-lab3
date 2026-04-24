@@ -1,7 +1,7 @@
 package discovery.ciscos.distlab4.multicast;
 
 import discovery.ciscos.distlab4.service.NodeContext;
-import jakarta.annotation.PostConstruct;
+import namingserver.ciscos.distlab3.service.HashService;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -18,9 +18,11 @@ public class NodeMulticastListener {
     private static final String BOOTSTRAP_PREFIX = "BOOTSTRAP";
 
     private final NodeContext context;
+    private final HashService hashService;
 
     public NodeMulticastListener(NodeContext context) {
         this.context = context;
+        this.hashService = new HashService(); //eig beter dan multicastlistenerservice
     }
 
     public void start() {
@@ -57,7 +59,7 @@ public class NodeMulticastListener {
         // eigen bericht negeren
         if (newNodeName.equals(context.getNodeName())) return;
 
-        int newHash = hash(newNodeName);
+        int newHash = hashService.hash(newNodeName);
         int current = context.getCurrentID();
         int next = context.getNextID();
         int previous = context.getPreviousID();
@@ -82,14 +84,5 @@ public class NodeMulticastListener {
         } catch (IOException e) {
             System.err.println("[Node] Fout bij versturen unicast: " + e.getMessage());
         }
-    }
-
-    private int hash(String input) {
-        long MAX = 2147483647L;
-        long MIN = -2147483647L;
-        int NEW_MAX = 32768;
-        long raw = input.hashCode();
-        double scaled = (raw + MAX) * ((double) NEW_MAX / (MAX + Math.abs(MIN)));
-        return (int) Math.round(scaled);
     }
 }
