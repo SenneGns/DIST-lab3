@@ -34,10 +34,13 @@ public class ShutdownHook {
         notifyNextNode();
         leaveNamingServer();
     }
-
+    /**
+     * Transfers all replicated files stored on this node to other available nodes
+     * in the ring before shutting down.
+     */
     private void transferReplicatedFiles() {
         TreeMap<Integer, String> nodes = getAllNodesMap();
-        nodes.remove(context.getCurrentID());
+        nodes.remove(context.getCurrentID());// Remove self from the list of targets
         if (nodes.isEmpty()) {
             System.out.println("[Shutdown] Geen andere nodes beschikbaar, bestanden niet overgedragen.");
             return;
@@ -46,6 +49,7 @@ public class ShutdownHook {
         for (FileLog.LogEntry entry : log.getEntries()) {
             File file = new File(replicaFilesPath, entry.fileName);
             if (!file.exists()) continue;
+            // Find a suitable target node that isn't the original owner of the file
             String targetIp = findTarget(nodes, entry.downloadLocation);
             if (targetIp != null) {
                 FileTransfer.sendFile(targetIp, file, entry.downloadLocation);
@@ -54,8 +58,10 @@ public class ShutdownHook {
         }
     }
 
-    // Loopt terug door de ring vanaf previousID, slaat nodes over waarvan de IP gelijk is aan localOwnerIp.
-    private String findTarget(TreeMap<Integer, String> nodes, String localOwnerIp) {
+    /**
+     * Searches backwards through the ring starting from the previous node ID.
+     * Skips nodes if their IP matches the localOwnerIp to ensure redundancy.
+     */    private String findTarget(TreeMap<Integer, String> nodes, String localOwnerIp) {
         Integer currentKey = context.getPreviousID();
         for (int i = 0; i < nodes.size(); i++) {
             String ip = nodes.get(currentKey);
@@ -64,9 +70,12 @@ public class ShutdownHook {
                         if (key == null) key = nodes.lastKey(); // wrap: kleinste → grootste
             currentKey = key;
         }
-        return null; // alle nodes hebben het bestand lokaal (zou niet mogen voorkomen)
+        return null; // Occurs if all available nodes already have the file locally
     }
 
+    /**
+     * Fetches the current map of all nodes from the naming server.
+     */
     private TreeMap<Integer, String> getAllNodesMap() {
         try {
             URL url = new URL(namingServerUrl + "/naming/nodes");
@@ -85,7 +94,9 @@ public class ShutdownHook {
         }
     }
 
-    // stuur nextID naar vorige buur zodat die zijn nextID kan updaten
+    /**
+     * Informs the previous node in the ring about the new next node.
+     */
     private void notifyPreviousNode() {
         try {
             String previousIp = getIpFromNamingServer(context.getPreviousID());
@@ -98,7 +109,9 @@ public class ShutdownHook {
         }
     }
 
-    // stuur previousID naar volgende buur zodat die zijn previousID kan updaten
+    /**
+     * Informs the next node in the ring about the new previous node.
+     */
     private void notifyNextNode() {
         try {
             String nextIp = getIpFromNamingServer(context.getNextID());
@@ -132,6 +145,10 @@ public class ShutdownHook {
             return null;
         }
     }
+
+    /**
+     * Helper to resolve a Node ID to an IP address via the Naming Server.
+     */
 
     private void leaveNamingServer() {
         try {
