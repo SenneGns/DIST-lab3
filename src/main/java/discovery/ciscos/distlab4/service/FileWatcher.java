@@ -1,9 +1,6 @@
 package discovery.ciscos.distlab4.service;
 
 import java.io.File;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -13,7 +10,6 @@ public class FileWatcher {
 
     private final String localFilesPath;
     private final ReplicationService replicationService;
-    private final String namingServerUrl;
 
     // snapshot van de bestanden die we de vorige keer zagen
     private Set<String> knownFiles = new HashSet<>();
@@ -21,9 +17,6 @@ public class FileWatcher {
     public FileWatcher(String localFilesPath, ReplicationService replicationService, String namingServerUrl) {
         this.localFilesPath = localFilesPath;
         this.replicationService = replicationService;
-        this.namingServerUrl = namingServerUrl.endsWith("/")
-                ? namingServerUrl.substring(0, namingServerUrl.length() - 1)
-                : namingServerUrl;
     }
 
     // start de watcher en slaat de huidige bestanden eerst op als beginsituatie
@@ -68,61 +61,11 @@ public class FileWatcher {
         // als nieuw bestand -> replicate
         for (String name : currentFiles) {
             if (!knownFiles.contains(name)) {
-                System.out.println("[FileWatcher] Nieuw bestand: " + name + " – repliceren...");
+                System.out.println("[FileWatcher] Nieuw bestand: " + name + " - repliceren...");
                 replicationService.replicateFile(new File(folder, name));
             }
         }
 
-        //Verwijderd bestand: verwijder replica bij owner
-        for (String name : knownFiles) {
-            if (!currentFiles.contains(name)) {
-                System.out.println("[FileWatcher] Bestand verwijderd: " + name + " – owner notificeren...");
-                notifyOwnerDelete(name);
-            }
-        }
-
         knownFiles = currentFiles;
-    }
-
-    // verwittigt de owner als een lokaal bestand verdwenen is
-    private void notifyOwnerDelete(String fileName) {
-        try {
-            String ownerIp = getOwnerIp(fileName);
-            if (ownerIp == null) {
-                System.out.println("[FileWatcher] Geen owner gevonden voor: " + fileName);
-                return;
-            }
-            String urlStr = "http://" + ownerIp + ":8080/node/deleteReplica?filename=" + fileName;
-            URL url = new URL(urlStr);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("DELETE");
-            conn.setConnectTimeout(2000);
-            conn.setReadTimeout(2000);
-            System.out.println("[FileWatcher] Replica verwijderd op " + ownerIp + " -> HTTP " + conn.getResponseCode());
-        } catch (Exception e) {
-            System.err.println("[FileWatcher] Fout bij notificeren verwijdering van " + fileName + ": " + e.getMessage());
-        }
-    }
-
-    // vraagt de owner zijn ip op bij de naming server
-    private String getOwnerIp(String fileName) {
-        try {
-            String urlStr = namingServerUrl + "/naming/lookup?filename=" + fileName;
-            URL url = new URL(urlStr);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
-            conn.setConnectTimeout(2000);
-            conn.setReadTimeout(2000);
-            String response = new String(conn.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-            String search = "\"ownerIpAddress\":\"";
-            int idx = response.indexOf(search);
-            if (idx == -1) return null;
-            int start = idx + search.length();
-            int end = response.indexOf("\"", start);
-            return response.substring(start, end);
-        } catch (Exception e) {
-            System.err.println("[FileWatcher] Fout bij ophalen owner IP: " + e.getMessage());
-            return null;
-        }
     }
 }
