@@ -1,5 +1,7 @@
 package discovery.ciscos.distlab4.service;
 
+import namingserver.ciscos.distlab3.service.HashService;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -7,8 +9,8 @@ import java.net.Socket;
 public class FileTransfer {
 
     private static final int PORT = 5000;
+    private static final HashService hashService = new HashService();
 
-    // Makes a TCP connection for sending files, and sends the files
     public static void sendFile(String ip, File file) {
         try (Socket socket = new Socket(ip, PORT);
              FileInputStream fis = new FileInputStream(file);
@@ -29,14 +31,14 @@ public class FileTransfer {
         }
     }
 
-    // waits for incoming files and starts receiveFile for each file.
     public static void startReceiver(String saveDirectory) {
         Thread t = new Thread(() -> {
             try (ServerSocket serverSocket = new ServerSocket(PORT)) {
                 System.out.println("[FileTransfer] Ontvanger actief op poort " + PORT);
                 while (true) {
                     Socket socket = serverSocket.accept();
-                    new Thread(() -> receiveFile(socket, saveDirectory)).start();
+                    String remoteIp = socket.getInetAddress().getHostAddress();
+                    new Thread(() -> receiveFile(socket, saveDirectory, remoteIp)).start();
                 }
             } catch (Exception e) {
                 System.err.println("[FileTransfer] Fout bij ontvangen: " + e.getMessage());
@@ -46,8 +48,7 @@ public class FileTransfer {
         t.start();
     }
 
-    // receives a file and saves it to the local folder.
-    private static void receiveFile(Socket socket, String saveDirectory) {
+    private static void receiveFile(Socket socket, String saveDirectory, String senderIp) {
         try (InputStream in = socket.getInputStream()) {
             DataInputStream dis = new DataInputStream(in);
             String fileName = dis.readUTF();
@@ -63,7 +64,13 @@ public class FileTransfer {
                     remaining -= read;
                 }
             }
-            System.out.println("[FileTransfer] Bestand ontvangen: " + fileName);
+
+            // log aanmaken als owner
+            int fileHash = hashService.hash(fileName);
+            FileLog log = new FileLog(saveDirectory);
+            log.addEntry(fileName, fileHash, senderIp);
+
+            System.out.println("[FileTransfer] Bestand ontvangen: " + fileName + " van " + senderIp);
         } catch (Exception e) {
             System.err.println("[FileTransfer] Fout bij verwerken ontvangen bestand: " + e.getMessage());
         }
