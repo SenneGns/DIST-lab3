@@ -4,6 +4,8 @@ import discovery.ciscos.distlab4.multicast.NodeMulticastListener;
 import discovery.ciscos.distlab4.service.*;
 import namingserver.ciscos.distlab3.service.HashService;
 
+import java.io.File;
+
 public class NodeApplication {
 
     private static final String NAMING_SERVER_URL = "http://localhost:8080";
@@ -18,7 +20,11 @@ public class NodeApplication {
 
         String nodeName = args[0];
         String ip = args[1];
-        String localFilesPath = args[2];
+        String localFilesPath = args[2] + "/local";
+        String replicaFilesPath = args[2] + "/replicas";
+
+        new File(localFilesPath).mkdirs();
+        new File(replicaFilesPath).mkdirs();
 
         HashService hashService = new HashService();
         int currentID = hashService.hash(nodeName);
@@ -31,8 +37,7 @@ public class NodeApplication {
         BootstrapNode bootstrap = new BootstrapNode(context);
         bootstrap.bootstrap();
 
-        FileTransfer.startReceiver(localFilesPath);
-
+        FileTransfer.startReceiver(replicaFilesPath);
         ReplicationService replication = new ReplicationService(NAMING_SERVER_URL, localFilesPath);
         replication.replicateAllFiles();
 
