@@ -34,7 +34,7 @@ public class ReplicationService {
     }
 
     // asks the naming server where a file should go and sends it. Also calls for the SendFile function from FileTransfer.
-    private void replicateFile(File file) {
+    public void replicateFile(File file) { //nodig voor update dus public
         try {
             String ownerIp = getOwnerIp(file.getName());
             if (ownerIp == null) {

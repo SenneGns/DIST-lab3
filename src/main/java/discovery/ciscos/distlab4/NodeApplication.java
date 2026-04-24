@@ -14,6 +14,8 @@ public class NodeApplication {
             return;
         }
 
+
+
         String nodeName = args[0];
         String ip = args[1];
         String localFilesPath = args[2];
@@ -33,6 +35,9 @@ public class NodeApplication {
 
         ReplicationService replication = new ReplicationService(NAMING_SERVER_URL, localFilesPath);
         replication.replicateAllFiles();
+
+        FileWatcher fileWatcher = new FileWatcher(localFilesPath, replication, NAMING_SERVER_URL);
+        fileWatcher.start();
 
         ShutdownHook shutdownHook = new ShutdownHook(NAMING_SERVER_URL, context);
         shutdownHook.register();

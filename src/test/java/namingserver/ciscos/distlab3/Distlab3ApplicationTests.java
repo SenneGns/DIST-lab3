@@ -192,4 +192,5 @@ class Distlab3ApplicationTests {
         assertEquals(r1.getOwnerNodeId(), r2.getOwnerNodeId());
         assertEquals(r1.getOwnerIpAddress(), r2.getOwnerIpAddress());
     }
+
 }
