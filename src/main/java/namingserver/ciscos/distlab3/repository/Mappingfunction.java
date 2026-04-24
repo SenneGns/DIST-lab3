@@ -17,6 +17,7 @@ public class Mappingfunction {
 
     public Mappingfunction() {
         load();
+        save(); //save nodig want dan komt nodes.json terug
     }
 
     public void addNode(int hash, String ip) {

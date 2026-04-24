@@ -5,54 +5,93 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
-/**
- * Best-effort graceful leave on JVM shutdown. Posts to the naming server's leave endpoint
- * with short retries and a small overall time budget.
- */
 public class ShutdownHook {
-    private final String baseUrl; // e.g., http://localhost:8080
-    private final String nodeName; // identify by name; server hashes it
 
-    private int maxAttempts = 4;
-    private int connectTimeoutMs = 1500;
-    private int readTimeoutMs = 1500;
-    private long totalBudgetMs = 8000;
+    private final String namingServerUrl;
+    private final NodeContext context;
 
-    public ShutdownHook(String baseUrl, String nodeName) {
-        this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
-        this.nodeName = nodeName;
+    public ShutdownHook(String namingServerUrl, NodeContext context) {
+        this.namingServerUrl = namingServerUrl.endsWith("/") ? namingServerUrl.substring(0, namingServerUrl.length() - 1) : namingServerUrl;
+        this.context = context;
     }
-
-    public ShutdownHook withMaxAttempts(int attempts) { this.maxAttempts = attempts; return this; }
-    public ShutdownHook withTimeouts(int connectMs, int readMs) { this.connectTimeoutMs = connectMs; this.readTimeoutMs = readMs; return this; }
-    public ShutdownHook withBudgetMs(long ms) { this.totalBudgetMs = ms; return this; }
 
     public void register() {
-        Runtime.getRuntime().addShutdownHook(new Thread(this::leaveBestEffort, "discovery-leave-hook"));
+        Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown, "shutdown-hook"));
     }
 
-    private void leaveBestEffort() {
-        long deadline = System.currentTimeMillis() + totalBudgetMs;
-        int attempts = 0;
-        while (attempts < maxAttempts && System.currentTimeMillis() < deadline) {
-            attempts++;
-            try {
-                String urlStr = baseUrl + "/naming/nodes/leave?nodeName=" +
-                        URLEncoder.encode(nodeName, StandardCharsets.UTF_8);
-                URL url = new URL(urlStr);
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setConnectTimeout(connectTimeoutMs);
-                conn.setReadTimeout(readTimeoutMs);
-                int code = conn.getResponseCode();
-                System.out.println("[ShutdownHook] leave attempt=" + attempts + ", response=" + code);
-                if (code >= 200 && code < 300) return; // success
-            } catch (Exception e) {
-                System.out.println("[ShutdownHook] leave attempt " + attempts + " failed: " + e.getMessage());
-            }
-            // jittered backoff 200-600ms
-            try { Thread.sleep(200 + (long)(Math.random() * 400)); } catch (InterruptedException ignored) {}
+    private void shutdown() {
+        notifyPreviousNode();
+        notifyNextNode();
+        leaveNamingServer();
+    }
+
+    // stuur nextID naar vorige buur zodat die zijn nextID kan updaten
+    private void notifyPreviousNode() {
+        try {
+            String previousIp = getIpFromNamingServer(context.getPreviousID());
+            if (previousIp == null) return;
+            String url = "http://" + previousIp + ":8080/node/setNext?nextID=" + context.getNextID();
+            sendPost(url);
+            System.out.println("[Shutdown] PreviousNode genotificeerd op " + previousIp);
+        } catch (Exception e) {
+            System.out.println("[Shutdown] Fout bij notificeren previousNode: " + e.getMessage());
         }
-        System.out.println("[ShutdownHook] leave did not confirm within budget; exiting anyway.");
+    }
+
+    // stuur previousID naar volgende buur zodat die zijn previousID kan updaten
+    private void notifyNextNode() {
+        try {
+            String nextIp = getIpFromNamingServer(context.getNextID());
+            if (nextIp == null) return;
+            String url = "http://" + nextIp + ":8080/node/setPrevious?previousID=" + context.getPreviousID();
+            sendPost(url);
+            System.out.println("[Shutdown] NextNode genotificeerd op " + nextIp);
+        } catch (Exception e) {
+            System.out.println("[Shutdown] Fout bij notificeren nextNode: " + e.getMessage());
+        }
+    }
+
+    private String getIpFromNamingServer(int nodeId) {
+        try {
+            String urlStr = namingServerUrl + "/naming/nodes";
+            URL url = new URL(urlStr);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(2000);
+            conn.setReadTimeout(2000);
+            String response = new String(conn.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            // response is JSON map: {"hash":"ip", ...}
+            String search = "\"" + nodeId + "\":\"";
+            int idx = response.indexOf(search);
+            if (idx == -1) return null;
+            int start = idx + search.length();
+            int end = response.indexOf("\"", start);
+            return response.substring(start, end);
+        } catch (Exception e) {
+            System.out.println("[Shutdown] Fout bij ophalen IP van naming server: " + e.getMessage());
+            return null;
+        }
+    }
+
+    private void leaveNamingServer() {
+        try {
+            String urlStr = namingServerUrl + "/naming/nodes/leave?nodeName=" +
+                    URLEncoder.encode(context.getNodeName(), StandardCharsets.UTF_8);
+            sendPost(urlStr);
+            System.out.println("[Shutdown] Naming server verlaten.");
+        } catch (Exception e) {
+            System.out.println("[Shutdown] Fout bij verlaten naming server: " + e.getMessage());
+        }
+    }
+
+    private void sendPost(String urlStr) throws Exception {
+        URL url = new URL(urlStr);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("POST");
+        conn.setConnectTimeout(2000);
+        conn.setReadTimeout(2000);
+        conn.setDoOutput(true);
+        conn.getOutputStream().write(new byte[0]);
+        System.out.println("[Shutdown] POST " + urlStr + " -> " + conn.getResponseCode());
     }
 }
