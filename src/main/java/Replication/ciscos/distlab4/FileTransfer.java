@@ -1,4 +1,4 @@
-package discovery.ciscos.distlab4.service;
+package Replication.ciscos.distlab4;
 
 import namingserver.ciscos.distlab3.service.HashService;
 
@@ -12,6 +12,11 @@ public class FileTransfer {
     private static final HashService hashService = new HashService();
 
     public static void sendFile(String ip, File file) {
+        sendFile(ip, file, "");
+    }
+
+    // originalOwnerIp: bewaar originele downloadLocation (leeg = gebruik senderIp bij ontvanger)
+    public static void sendFile(String ip, File file, String originalOwnerIp) {
         try (Socket socket = new Socket(ip, PORT);
              FileInputStream fis = new FileInputStream(file);
              OutputStream out = socket.getOutputStream()) {
@@ -19,6 +24,7 @@ public class FileTransfer {
             DataOutputStream dos = new DataOutputStream(out);
             dos.writeUTF(file.getName());
             dos.writeLong(file.length());
+            dos.writeUTF(originalOwnerIp == null ? "" : originalOwnerIp);
 
             byte[] buffer = new byte[4096];
             int read;
@@ -53,6 +59,8 @@ public class FileTransfer {
             DataInputStream dis = new DataInputStream(in);
             String fileName = dis.readUTF();
             long fileSize = dis.readLong();
+            String originalOwnerIp = dis.readUTF();
+            String downloadLocation = originalOwnerIp.isEmpty() ? senderIp : originalOwnerIp;
 
             File outFile = new File(saveDirectory, fileName);
             try (FileOutputStream fos = new FileOutputStream(outFile)) {
@@ -68,9 +76,10 @@ public class FileTransfer {
             // log aanmaken als owner
             int fileHash = hashService.hash(fileName);
             FileLog log = new FileLog(saveDirectory);
-            log.addEntry(fileName, fileHash, senderIp);
+            log.removeEntry(fileName); // verwijder eventuele oude entry
+            log.addEntry(fileName, fileHash, downloadLocation);
 
-            System.out.println("[FileTransfer] Bestand ontvangen: " + fileName + " van " + senderIp);
+            System.out.println("[FileTransfer] Bestand ontvangen: " + fileName + " van " + senderIp + " (owner: " + downloadLocation + ")");
         } catch (Exception e) {
             System.err.println("[FileTransfer] Fout bij verwerken ontvangen bestand: " + e.getMessage());
         }

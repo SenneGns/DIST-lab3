@@ -1,5 +1,9 @@
 package discovery.ciscos.distlab4;
 
+import Replication.ciscos.distlab4.FileWatcher;
+import Replication.ciscos.distlab4.ReplicationService;
+import discovery.ciscos.distlab4.service.FailureDetector;
+import Replication.ciscos.distlab4.FileTransfer;
 import discovery.ciscos.distlab4.multicast.NodeMulticastListener;
 import discovery.ciscos.distlab4.service.*;
 import namingserver.ciscos.distlab3.service.HashService;
@@ -44,7 +48,7 @@ public class NodeApplication {
         FileWatcher fileWatcher = new FileWatcher(localFilesPath, replication, NAMING_SERVER_URL);
         fileWatcher.start();
 
-        ShutdownHook shutdownHook = new ShutdownHook(NAMING_SERVER_URL, context);
+        ShutdownHook shutdownHook = new ShutdownHook(NAMING_SERVER_URL, context, replicaFilesPath);
         shutdownHook.register();
 
         FailureDetector failureDetector = new FailureDetector(NAMING_SERVER_URL, context);

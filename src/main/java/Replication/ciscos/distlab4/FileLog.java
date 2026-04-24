@@ -1,4 +1,4 @@
-package discovery.ciscos.distlab4.service;
+package Replication.ciscos.distlab4;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.type.TypeReference;

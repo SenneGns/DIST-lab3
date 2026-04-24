@@ -1,4 +1,4 @@
-package discovery.ciscos.distlab4.service;
+package Replication.ciscos.distlab4;
 
 import java.io.File;
 import java.net.HttpURLConnection;
