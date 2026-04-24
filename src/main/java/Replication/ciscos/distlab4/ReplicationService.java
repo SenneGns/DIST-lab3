@@ -49,7 +49,7 @@ public class ReplicationService {
     }
 
     // asks the naming server for the IP address of the node that should store a file.
-    private String getOwnerIp(String fileName) {
+    public String getOwnerIp(String fileName) {
         try {
             String urlStr = namingServerUrl + "/naming/lookup?filename=" + fileName;
             URL url = new URL(urlStr);
