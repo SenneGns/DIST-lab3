@@ -26,8 +26,7 @@ public class FileWatcher {
                 : namingServerUrl;
     }
 
-    /** Start de achtergrond-thread. Initialiseer de snapshot zodat bestaande bestanden
-     *  niet opnieuw als "nieuw" worden beschouwd (die zijn al gerepliceerd bij Starting). */
+    // start de watcher en slaat de huidige bestanden eerst op als beginsituatie
     public void start() {
         File folder = new File(localFilesPath);
         File[] initial = folder.listFiles();
@@ -42,10 +41,7 @@ public class FileWatcher {
         System.out.println("[FileWatcher] Gestart, bewaakt: " + localFilesPath);
     }
 
-    // -------------------------------------------------------------------------
-    // Achtergrond-loop
-    // -------------------------------------------------------------------------
-
+    // blijft lopen in de achtergrond en controleert regelmatig de map
     private void watch() {
         while (true) {
             try {
@@ -58,6 +54,7 @@ public class FileWatcher {
         }
     }
 
+    // vergelijkt de vorige snapshot met de huidige bestanden in de map
     private void checkChanges() {
         File folder = new File(localFilesPath);
         File[] currentArray = folder.listFiles();
@@ -68,7 +65,7 @@ public class FileWatcher {
             }
         }
 
-        // --- Nieuw bestand: repliceer onmiddellijk ---
+        // als nieuw bestand -> replicate
         for (String name : currentFiles) {
             if (!knownFiles.contains(name)) {
                 System.out.println("[FileWatcher] Nieuw bestand: " + name + " – repliceren...");
@@ -76,7 +73,7 @@ public class FileWatcher {
             }
         }
 
-        // --- Verwijderd bestand: verwijder replica bij owner ---
+        //Verwijderd bestand: verwijder replica bij owner
         for (String name : knownFiles) {
             if (!currentFiles.contains(name)) {
                 System.out.println("[FileWatcher] Bestand verwijderd: " + name + " – owner notificeren...");
@@ -87,16 +84,7 @@ public class FileWatcher {
         knownFiles = currentFiles;
     }
 
-    // -------------------------------------------------------------------------
-    // Owner notificeren bij verwijdering
-    // -------------------------------------------------------------------------
-
-    /**
-     * Vraagt de naming server wie de owner is van dit bestand en stuurt een
-     * DELETE-request naar die node om de replica te verwijderen.
-     *
-     * Vereist dat de node een endpoint heeft: DELETE /node/deleteReplica?filename=X
-     */
+    // verwittigt de owner als een lokaal bestand verdwenen is
     private void notifyOwnerDelete(String fileName) {
         try {
             String ownerIp = getOwnerIp(fileName);
@@ -116,10 +104,7 @@ public class FileWatcher {
         }
     }
 
-    /**
-     * Zelfde logica als ReplicationService.getOwnerIp() – naming server lookup.
-     * Gedupliceerd zodat ReplicationService niet verder hoeft aangepast te worden.
-     */
+    // vraagt de owner zijn ip op bij de naming server
     private String getOwnerIp(String fileName) {
         try {
             String urlStr = namingServerUrl + "/naming/lookup?filename=" + fileName;
