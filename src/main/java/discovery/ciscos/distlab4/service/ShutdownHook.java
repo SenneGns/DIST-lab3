@@ -17,11 +17,13 @@ public class ShutdownHook {
     private final String namingServerUrl;
     private final NodeContext context;
     private final String replicaFilesPath;
+    private final String localFilesPath;
 
-    public ShutdownHook(String namingServerUrl, NodeContext context, String replicaFilesPath) {
+    public ShutdownHook(String namingServerUrl, NodeContext context, String replicaFilesPath, String localFilesPath) {
         this.namingServerUrl = namingServerUrl.endsWith("/") ? namingServerUrl.substring(0, namingServerUrl.length() - 1) : namingServerUrl;
         this.context = context;
         this.replicaFilesPath = replicaFilesPath;
+        this.localFilesPath = localFilesPath;
     }
 
     public void register() {
@@ -30,6 +32,7 @@ public class ShutdownHook {
 
     private void shutdown() {
         transferReplicatedFiles();
+        notifyOwnersOfLocalFiles();
         notifyPreviousNode();
         notifyNextNode();
         leaveNamingServer();
@@ -59,6 +62,54 @@ public class ShutdownHook {
     }
 
     /**
+     * Shutdown 3/3: waarschuwt de owner (replicated node) van elk lokaal bestand
+     * dat deze node stopt. De owner beslist dan of de replica verwijderd of bijgewerkt wordt.
+     */
+    private void notifyOwnersOfLocalFiles() {
+        File localDir = new File(localFilesPath);
+        File[] files = localDir.listFiles();
+        if (files == null) return;
+
+        for (File file : files) {
+            if (!file.isFile()) continue;
+            String ownerIp = getOwnerIp(file.getName());
+            if (ownerIp == null) continue;
+            // Stuur geen melding naar onszelf
+            if (ownerIp.equals(context.getIp())) continue;
+            try {
+                String url = "http://" + ownerIp + ":8080/node/localFileTerminating"
+                        + "?filename=" + URLEncoder.encode(file.getName(), StandardCharsets.UTF_8)
+                        + "&sourceIp=" + URLEncoder.encode(context.getIp(), StandardCharsets.UTF_8);
+                sendPost(url);
+                System.out.println("[Shutdown] Owner " + ownerIp + " gewaarschuwd voor lokaal bestand: " + file.getName());
+            } catch (Exception e) {
+                System.out.println("[Shutdown] Fout bij waarschuwen owner voor " + file.getName() + ": " + e.getMessage());
+            }
+        }
+    }
+
+    private String getOwnerIp(String fileName) {
+        try {
+            String urlStr = namingServerUrl + "/naming/lookup?filename=" + URLEncoder.encode(fileName, StandardCharsets.UTF_8);
+            URL url = new URL(urlStr);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(2000);
+            conn.setReadTimeout(2000);
+            String response = new String(conn.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            String search = "\"ownerIpAddress\":\"";
+            int idx = response.indexOf(search);
+            if (idx == -1) return null;
+            int start = idx + search.length();
+            int end = response.indexOf("\"", start);
+            return response.substring(start, end);
+        } catch (Exception e) {
+            System.out.println("[Shutdown] Fout bij ophalen owner IP voor " + fileName + ": " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Searches backwards through the ring starting from the previous node ID.
      * Skips nodes if their IP matches the localOwnerIp to ensure redundancy.
      */    private String findTarget(TreeMap<Integer, String> nodes, String localOwnerIp) {
@@ -67,7 +118,7 @@ public class ShutdownHook {
             String ip = nodes.get(currentKey);
             if (ip != null && !ip.equals(localOwnerIp)) return ip;
             Integer key = nodes.lowerKey(currentKey);
-                        if (key == null) key = nodes.lastKey(); // wrap: kleinste → grootste
+            if (key == null) key = nodes.lastKey(); // wrap: kleinste → grootste
             currentKey = key;
         }
         return null; // Occurs if all available nodes already have the file locally

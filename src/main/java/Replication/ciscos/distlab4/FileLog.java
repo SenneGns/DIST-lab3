@@ -13,6 +13,7 @@ public class FileLog {
         public String fileName;
         public int fileHash;
         public String downloadLocation;
+        public boolean downloadedByOthers = false;
 
         public LogEntry() {}
 
@@ -43,11 +44,26 @@ public class FileLog {
         save();
     }
 
+    public void updateDownloadLocation(String fileName, String newLocation) {
+        entries.stream()
+                .filter(e -> e.fileName.equals(fileName))
+                .findFirst()
+                .ifPresent(e -> { e.downloadLocation = newLocation; save(); });
+    }
+
+    public void markDownloadedByOthers(String fileName) {
+        entries.stream()
+                .filter(e -> e.fileName.equals(fileName))
+                .findFirst()
+                .ifPresent(e -> { e.downloadedByOthers = true; save(); });
+    }
+
     public List<LogEntry> getEntries() {
         return entries;
     }
 
-    private void save() {
+
+    public void save() {
         try {
             mapper.writeValue(logFile, entries);
         } catch (Exception e) {

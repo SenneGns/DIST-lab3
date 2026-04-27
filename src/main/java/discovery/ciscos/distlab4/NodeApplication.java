@@ -1,7 +1,6 @@
 package discovery.ciscos.distlab4;
 
-import Replication.ciscos.distlab4.FileWatcher;
-import Replication.ciscos.distlab4.ReplicationService;
+import Replication.ciscos.distlab4.*;
 import discovery.ciscos.distlab4.service.FailureDetector;
 import Replication.ciscos.distlab4.FileTransfer;
 import discovery.ciscos.distlab4.multicast.NodeMulticastListener;
@@ -14,7 +13,7 @@ public class NodeApplication {
 
     private static final String NAMING_SERVER_URL = "http://localhost:8080";
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws Exception {
         if (args.length < 3) {
             System.out.println("Gebruik: NodeApplication <nodeName> <ip> <localFilesPath>");
             return;
@@ -41,6 +40,9 @@ public class NodeApplication {
         BootstrapNode bootstrap = new BootstrapNode(context);
         bootstrap.bootstrap();
 
+        NodeHttpServer httpServer = new NodeHttpServer(8080, context, replicaFilesPath);
+        httpServer.start();
+
         FileTransfer.startReceiver(replicaFilesPath);
         ReplicationService replication = new ReplicationService(NAMING_SERVER_URL, localFilesPath);
         replication.replicateAllFiles();
@@ -48,7 +50,7 @@ public class NodeApplication {
         FileWatcher fileWatcher = new FileWatcher(localFilesPath, replication, NAMING_SERVER_URL);
         fileWatcher.start();
 
-        ShutdownHook shutdownHook = new ShutdownHook(NAMING_SERVER_URL, context, replicaFilesPath);
+        ShutdownHook shutdownHook = new ShutdownHook(NAMING_SERVER_URL, context, replicaFilesPath, localFilesPath);
         shutdownHook.register();
 
         FailureDetector failureDetector = new FailureDetector(NAMING_SERVER_URL, context);
