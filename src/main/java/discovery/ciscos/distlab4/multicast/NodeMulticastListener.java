@@ -64,15 +64,22 @@ public class NodeMulticastListener {
         int next = context.getNextID();
         int previous = context.getPreviousID();
 
-        if (current < newHash && newHash < next) {
+        if (isBetween(current, newHash, next)) {
             context.setNextID(newHash);
             sendUnicast(packet.getAddress(), "NEIGHBOUR:" + current + ":" + next);
             System.out.println("[Node] nextID updated to " + newHash);
-        } else if (previous < newHash && newHash < current) {
+        } else if (isBetween(previous, newHash, current)) {
             context.setPreviousID(newHash);
             sendUnicast(packet.getAddress(), "NEIGHBOUR:" + current + ":" + previous);
             System.out.println("[Node] previousID updated to " + newHash);
         }
+    }
+
+    //Controleert of een hash strikt tussen twee node IDs ligt op een circulaire ring.
+    private boolean isBetween(int start, int value, int end) {
+        if (start == end) return value != start;
+        if (start < end) return start < value && value < end;
+        return value > start || value < end;
     }
 
     private void sendUnicast(InetAddress receiver, String message) {
