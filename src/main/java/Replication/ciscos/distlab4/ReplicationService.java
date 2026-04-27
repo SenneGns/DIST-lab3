@@ -69,4 +69,22 @@ public class ReplicationService {
             return null;
         }
     }
+
+    public void deleteReplica(String fileName) {
+        try {
+            String ownerIp = getOwnerIp(fileName);
+            if (ownerIp == null) {
+                System.out.println("[Replication] Geen owner gevonden voor delete: " + fileName);
+                return;
+            }
+            URL url = new URL("http://" + ownerIp + ":8080/node/deleteReplica?filename=" + fileName);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("DELETE");
+            conn.setConnectTimeout(2000);
+            conn.setReadTimeout(2000);
+            System.out.println("[Replication] Replica delete " + fileName + " -> " + conn.getResponseCode());
+        } catch (Exception e) {
+            System.err.println("[Replication] Fout bij deleteReplica: " + e.getMessage());
+        }
+    }
 }

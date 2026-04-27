@@ -66,6 +66,14 @@ public class FileWatcher {
             }
         }
 
+        // als bestand verwijderd is -> replica bij owner verwijderen
+        for (String name : knownFiles) {
+            if (!currentFiles.contains(name)) {
+                System.out.println("[FileWatcher] Bestand verwijderd: " + name + " - replica verwijderen...");
+                replicationService.deleteReplica(name);
+            }
+        }
+
         knownFiles = currentFiles;
     }
 }

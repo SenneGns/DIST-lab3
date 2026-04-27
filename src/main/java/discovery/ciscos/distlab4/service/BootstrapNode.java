@@ -60,7 +60,10 @@ public class BootstrapNode {
         int senderID = Integer.parseInt(parts[1].trim());
         int senderNeighbour = Integer.parseInt(parts[2].trim());
 
-        if (senderID < context.getCurrentID()) {
+        if (senderID == senderNeighbour) {
+            context.setPreviousID(senderID);
+            context.setNextID(senderID);
+        } else if (senderID < context.getCurrentID()) {
             context.setPreviousID(senderID);
         } else {
             context.setNextID(senderID);
