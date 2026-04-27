@@ -4,7 +4,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = { //fixt dat het de andere package ook runt
+		"namingserver.ciscos.distlab3",
+		"discovery.ciscos.distlab4"
+})
 @EnableScheduling
 public class Distlab3Application {
 
