@@ -40,7 +40,7 @@ public class NodeApplication {
         BootstrapNode bootstrap = new BootstrapNode(context);
         bootstrap.bootstrap();
 
-        NodeHttpServer httpServer = new NodeHttpServer(8080, context, replicaFilesPath);
+        NodeHttpServer httpServer = new NodeHttpServer(8081, context, replicaFilesPath);
         httpServer.start();
 
         FileTransfer.startReceiver(replicaFilesPath);
