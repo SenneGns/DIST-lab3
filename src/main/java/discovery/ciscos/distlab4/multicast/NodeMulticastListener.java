@@ -64,7 +64,12 @@ public class NodeMulticastListener {
         int next = context.getNextID();
         int previous = context.getPreviousID();
 
-        if (isBetween(current, newHash, next)) {
+        if (previous == current && next == current) {
+            context.setPreviousID(newHash);
+            context.setNextID(newHash);
+            sendUnicast(packet.getAddress(), "NEIGHBOUR:" + current + ":" + current);
+            System.out.println("[Node] Enige node: previousID en nextID updated to " + newHash);
+        } else if (isBetween(current, newHash, next)) {
             context.setNextID(newHash);
             sendUnicast(packet.getAddress(), "NEIGHBOUR:PREVIOUS:" + current);
             sendUnicast(packet.getAddress(), "NEIGHBOUR:NEXT:" + next);

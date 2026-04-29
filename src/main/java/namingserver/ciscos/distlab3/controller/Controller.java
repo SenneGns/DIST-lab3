@@ -32,8 +32,8 @@ public class Controller {
         try {
             namingService.registerNode(nodeName, ip);
             return ResponseEntity.status(201).body("Node registered successfully");
-        } catch (IllegalStateException e) {
-            return ResponseEntity.status(503).body(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(409).body(e.getMessage());
         }
     }
 
