@@ -45,6 +45,7 @@ public class NodeHttpServer {
             send(exchange, 405, "Method not allowed");
             return;
         }
+        // als failuredetector deze ok krijgt, wilt het dus zeggen dat die nog leeft
         send(exchange, 200, "OK");
     }
 

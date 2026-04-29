@@ -25,7 +25,7 @@ public class DiscoveryService {
     //send message to namingserver and nodes
     public void sendMulticast(String message, String groupAddress, int port) {
         try (DatagramSocket socket = new DatagramSocket()) {
-            InetAddress group = InetAddress.getByName(groupAddress); //geven ze dus mee
+            InetAddress group = InetAddress.getByName(groupAddress); //geven ze dus mee, geeft groep dus multicast
             byte[] buffer = message.getBytes(StandardCharsets.UTF_8);
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, port);//dus multicast
             socket.send(packet); //to nodes and server

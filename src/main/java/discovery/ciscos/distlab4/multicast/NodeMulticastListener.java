@@ -53,17 +53,18 @@ public class NodeMulticastListener {
         String[] parts = message.split(":", 3);
         if (parts.length != 3 || !BOOTSTRAP_PREFIX.equals(parts[0])) return;
 
-        String newNodeName = parts[1].trim();
+        String newNodeName = parts[1].trim(); //want nodename is het tweede dat je stuurt
         String newNodeIp = parts[2].trim();
 
         // eigen bericht negeren
         if (newNodeName.equals(context.getNodeName())) return;
 
+        //hier ga je dus hash berekenen van de nieuwe
         int newHash = hashService.hash(newNodeName);
         int current = context.getCurrentID();
         int next = context.getNextID();
         int previous = context.getPreviousID();
-
+        //hier ga je dus zien of die nieuwe hash van de nieuwe node die info stuurde via multicast of deze je nextid of previousid gaat worden
         if (previous == current && next == current) {
             context.setPreviousID(newHash);
             context.setNextID(newHash);
