@@ -77,7 +77,7 @@ public class ShutdownHook {
             // Stuur geen melding naar onszelf
             if (ownerIp.equals(context.getIp())) continue;
             try {
-                String url = "http://" + ownerIp + ":8080/node/localFileTerminating"
+                String url = "http://" + ownerIp + ":8081/node/localFileTerminating"
                         + "?filename=" + URLEncoder.encode(file.getName(), StandardCharsets.UTF_8)
                         + "&sourceIp=" + URLEncoder.encode(context.getIp(), StandardCharsets.UTF_8);
                 sendPost(url);
@@ -152,7 +152,7 @@ public class ShutdownHook {
         try {
             String previousIp = getIpFromNamingServer(context.getPreviousID());
             if (previousIp == null) return;
-            String url = "http://" + previousIp + ":8080/node/setNext?nextID=" + context.getNextID();
+            String url = "http://" + previousIp + ":8081/node/setNext?nextID=" + context.getNextID();
             sendPost(url);
             System.out.println("[Shutdown] PreviousNode genotificeerd op " + previousIp);
         } catch (Exception e) {
@@ -167,7 +167,7 @@ public class ShutdownHook {
         try {
             String nextIp = getIpFromNamingServer(context.getNextID());
             if (nextIp == null) return;
-            String url = "http://" + nextIp + ":8080/node/setPrevious?previousID=" + context.getPreviousID();
+            String url = "http://" + nextIp + ":8081/node/setPrevious?previousID=" + context.getPreviousID();
             sendPost(url);
             System.out.println("[Shutdown] NextNode genotificeerd op " + nextIp);
         } catch (Exception e) {

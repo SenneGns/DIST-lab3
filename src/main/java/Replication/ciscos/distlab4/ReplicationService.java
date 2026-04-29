@@ -77,7 +77,7 @@ public class ReplicationService {
                 System.out.println("[Replication] Geen owner gevonden voor delete: " + fileName);
                 return;
             }
-            URL url = new URL("http://" + ownerIp + ":8080/node/deleteReplica?filename=" + fileName);
+            URL url = new URL("http://" + ownerIp + ":8081/node/deleteReplica?filename=" + fileName);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("DELETE");
             conn.setConnectTimeout(2000);
