@@ -20,10 +20,10 @@ public class NamingService {
     public void registerNode(String nodeName, String ip) {
         int nodeId = hashService.hash(nodeName);
         if (nodeRepository.getAllNodes().containsKey(nodeId)) {
-            throw new IllegalArgumentException("Node already exists");
+            throw new IllegalStateException("Node already exists");
         }
         if (nodeRepository.getAllNodes().containsValue(ip)) {
-            throw new IllegalArgumentException("IP address already exists");
+            throw new IllegalStateException("IP address already exists");
         }
         nodeRepository.addNode(nodeId, ip);
     }

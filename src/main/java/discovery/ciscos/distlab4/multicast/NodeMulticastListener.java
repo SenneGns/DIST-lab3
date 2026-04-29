@@ -66,11 +66,13 @@ public class NodeMulticastListener {
 
         if (isBetween(current, newHash, next)) {
             context.setNextID(newHash);
-            sendUnicast(packet.getAddress(), "NEIGHBOUR:" + current + ":" + next);
+            sendUnicast(packet.getAddress(), "NEIGHBOUR:PREVIOUS:" + current);
+            sendUnicast(packet.getAddress(), "NEIGHBOUR:NEXT:" + next);
             System.out.println("[Node] nextID updated to " + newHash);
         } else if (isBetween(previous, newHash, current)) {
             context.setPreviousID(newHash);
-            sendUnicast(packet.getAddress(), "NEIGHBOUR:" + current + ":" + previous);
+            sendUnicast(packet.getAddress(), "NEIGHBOUR:PREVIOUS:" + previous);
+            sendUnicast(packet.getAddress(), "NEIGHBOUR:NEXT:" + current);
             System.out.println("[Node] previousID updated to " + newHash);
         }
     }

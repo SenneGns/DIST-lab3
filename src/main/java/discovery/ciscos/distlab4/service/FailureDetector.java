@@ -39,7 +39,7 @@ public class FailureDetector {
         try {
             String ip = getIpFromNamingServer(nodeId);
             if (ip == null) return;
-            URL url = new URL("http://" + ip + ":8080/node/ping");
+            URL url = new URL("http://" + ip + ":8081/node/ping");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setConnectTimeout(2000);
@@ -121,7 +121,7 @@ public class FailureDetector {
         try {
             String ip = getIpFromNamingServer(nodeId);
             if (ip == null) return;
-            String urlStr = "http://" + ip + ":8080/node/" + endpoint + "?value=" + value;
+            String urlStr = "http://" + ip + ":8081/node/" + endpoint + "?value=" + value;
             URL url = new URL(urlStr);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");

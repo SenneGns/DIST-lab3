@@ -48,10 +48,29 @@ public class ReplicationService {
         }
     }
 
+    public void deleteReplicaFile(String fileName) {
+        try {
+            String ownerIp = getOwnerIp(fileName);
+            if (ownerIp == null) return;
+            String urlStr = "http://" + ownerIp + ":8081/node/deleteReplica?filename="
+                    + java.net.URLEncoder.encode(fileName, StandardCharsets.UTF_8);
+            HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection();
+            conn.setRequestMethod("POST");
+            conn.setConnectTimeout(2000);
+            conn.setReadTimeout(2000);
+            conn.setDoOutput(true);
+            conn.getOutputStream().write(new byte[0]);
+            System.out.println("[Replication] Replica verwijderd: " + fileName + " op " + ownerIp);
+        } catch (Exception e) {
+            System.err.println("[Replication] Fout bij verwijderen replica: " + e.getMessage());
+        }
+    }
+
     // asks the naming server for the IP address of the node that should store a file.
     public String getOwnerIp(String fileName) {
         try {
-            String urlStr = namingServerUrl + "/naming/lookup?filename=" + fileName;
+            String urlStr = namingServerUrl + "/naming/lookup?filename="
+                    + java.net.URLEncoder.encode(fileName, StandardCharsets.UTF_8);
             URL url = new URL(urlStr);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");

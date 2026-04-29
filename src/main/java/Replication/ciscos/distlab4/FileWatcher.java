@@ -65,6 +65,13 @@ public class FileWatcher {
                 replicationService.replicateFile(new File(folder, name));
             }
         }
+        // verwijderd bestand → replica verwijderen op owner-node
+        for (String name : knownFiles) {
+            if (!currentFiles.contains(name)) {
+                System.out.println("[FileWatcher] Bestand verwijderd: " + name + " - replica verwijderen...");
+                replicationService.deleteReplicaFile(name);
+            }
+        }
 
         knownFiles = currentFiles;
     }

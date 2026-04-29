@@ -64,10 +64,22 @@ public class NodeHttpServer {
             sendResponse(exchange, 200, "OK");
         });
 
+        server.createContext("/node/deleteReplica", exchange -> {
+            Map<String, String> params = parseQuery(exchange.getRequestURI().getQuery());
+            String filename = params.get("filename");
+            if (filename != null) {
+                new File(replicaFilesPath, filename).delete();
+                new FileLog(replicaFilesPath).removeEntry(filename);
+                System.out.println("[NodeServer] Replica verwijderd: " + filename);
+            }
+            sendResponse(exchange, 200, "OK");
+        });
+
         server.setExecutor(Executors.newCachedThreadPool());
         server.start();
         System.out.println("[NodeServer] HTTP server actief op poort " + port);
     }
+
 
     /**
      * Shutdown 3/3: de owner beslist of de replica verwijderd of bijgewerkt wordt.

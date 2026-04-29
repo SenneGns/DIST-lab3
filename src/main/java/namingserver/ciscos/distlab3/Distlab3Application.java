@@ -8,9 +8,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 		"namingserver.ciscos.distlab3",
 		"discovery.ciscos.distlab4"
 })
+
 @EnableScheduling
 public class Distlab3Application {
-
 	public static void main(String[] args) {
 		SpringApplication.run(Distlab3Application.class, args);
 	}

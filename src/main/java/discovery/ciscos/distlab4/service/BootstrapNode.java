@@ -54,16 +54,16 @@ public class BootstrapNode {
 
     private void handleNeighbourResponse(String msg) {
         if (!msg.startsWith("NEIGHBOUR:")) return;
-        String[] parts = msg.split(":");
+        String[] parts = msg.split(":", 3);
         if (parts.length != 3) return;
 
-        int senderID = Integer.parseInt(parts[1].trim());
-        int senderNeighbour = Integer.parseInt(parts[2].trim());
+        String role = parts[1].trim();   // "PREVIOUS" of "NEXT"
+        int senderID = Integer.parseInt(parts[2].trim());
 
-        if (senderID < context.getCurrentID()) {
-            context.setPreviousID(senderID);
-        } else {
+        if ("NEXT".equals(role)) {
             context.setNextID(senderID);
+        } else if ("PREVIOUS".equals(role)) {
+            context.setPreviousID(senderID);
         }
     }
 }

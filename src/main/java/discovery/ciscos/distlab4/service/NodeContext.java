@@ -5,8 +5,8 @@ public class NodeContext {
     private final String nodeName;
     private final String ip;
     private final int currentID;
-    private int previousID;
-    private int nextID;
+    private volatile int previousID;
+    private volatile int nextID;
 
     public NodeContext(String nodeName, String ip, int currentID) {
         this.nodeName = nodeName;

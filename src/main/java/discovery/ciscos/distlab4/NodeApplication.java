@@ -18,9 +18,6 @@ public class NodeApplication {
             System.out.println("Gebruik: NodeApplication <nodeName> <ip> <localFilesPath>");
             return;
         }
-
-
-
         String nodeName = args[0];
         String ip = args[1];
         String localFilesPath = args[2] + "/local";
@@ -63,12 +60,4 @@ public class NodeApplication {
         Thread.currentThread().join();
     }
 
-    private static int hash(String input) {
-        long MAX = 2147483647L;
-        long MIN = -2147483647L;
-        int NEW_MAX = 32768;
-        long raw = input.hashCode();
-        double scaled = (raw + MAX) * ((double) NEW_MAX / (MAX + Math.abs(MIN)));
-        return (int) Math.round(scaled);
-    }
 }

@@ -51,19 +51,19 @@ public class FileLog {
                 .ifPresent(e -> { e.downloadLocation = newLocation; save(); });
     }
 
-    public void markDownloadedByOthers(String fileName) {
-        entries.stream()
-                .filter(e -> e.fileName.equals(fileName))
-                .findFirst()
-                .ifPresent(e -> { e.downloadedByOthers = true; save(); });
-    }
+//    public void markDownloadedByOthers(String fileName) {
+//        entries.stream()
+//                .filter(e -> e.fileName.equals(fileName))
+//                .findFirst()
+//                .ifPresent(e -> { e.downloadedByOthers = true; save(); });
+//    }
 
     public List<LogEntry> getEntries() {
         return entries;
     }
 
 
-    public void save() {
+    private void save() {
         try {
             mapper.writeValue(logFile, entries);
         } catch (Exception e) {
