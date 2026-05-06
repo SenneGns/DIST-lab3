@@ -49,7 +49,6 @@ public class NodeApplication {
         syncThread.setDaemon(true);
         syncThread.start();
 
-        Dus het wordt:
 
         FileTransfer.startReceiver(replicaFilesPath);
         ReplicationService replication = new ReplicationService(NAMING_SERVER_URL, localFilesPath);
