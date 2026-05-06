@@ -1,12 +1,10 @@
 package discovery.ciscos.distlab4;
 
 import Replication.ciscos.distlab4.*;
-import discovery.ciscos.distlab4.service.FailureDetector;
-import Replication.ciscos.distlab4.FileTransfer;
+import agents.ciscos.distlab6.SyncAgent;
 import discovery.ciscos.distlab4.multicast.NodeMulticastListener;
 import discovery.ciscos.distlab4.service.*;
 import namingserver.ciscos.distlab3.service.HashService;
-import agents.ciscos.distlab6.SyncAgent;
 
 import java.io.File;
 
@@ -38,18 +36,19 @@ public class NodeApplication {
         BootstrapNode bootstrap = new BootstrapNode(context);
         bootstrap.bootstrap();
 
-        NodeHttpServer httpServer = new NodeHttpServer(8081, context, replicaFilesPath);
-        httpServer.start();
-
         FileLog fileLog = new FileLog(replicaFilesPath);
 
+        NodeHttpServer httpServer = new NodeHttpServer(8081, context, replicaFilesPath,
+                NAMING_SERVER_URL, fileLog);
+        httpServer.start();
+
         SyncAgent syncAgent = new SyncAgent();
-        syncAgent.setContext(fileLog, currentID);
+        syncAgent.setContext(fileLog, currentID, context, NAMING_SERVER_URL);
+        httpServer.setSyncAgent(syncAgent);
+
         Thread syncThread = new Thread(syncAgent, "sync-agent");
         syncThread.setDaemon(true);
         syncThread.start();
-
-        Dus het wordt:
 
         FileTransfer.startReceiver(replicaFilesPath);
         ReplicationService replication = new ReplicationService(NAMING_SERVER_URL, localFilesPath);
@@ -61,14 +60,13 @@ public class NodeApplication {
         ShutdownHook shutdownHook = new ShutdownHook(NAMING_SERVER_URL, context, replicaFilesPath, localFilesPath);
         shutdownHook.register();
 
-        FailureDetector failureDetector = new FailureDetector(NAMING_SERVER_URL, context);
+        FailureDetector failureDetector = new FailureDetector(NAMING_SERVER_URL, context,
+                fileLog, replicaFilesPath);
         failureDetector.start();
 
         System.out.println("[Node] " + nodeName + " actief met ID=" + currentID);
         System.out.println("[Node] previousID=" + context.getPreviousID() + " nextID=" + context.getNextID());
 
-        // node actief houden
         Thread.currentThread().join();
     }
-
 }

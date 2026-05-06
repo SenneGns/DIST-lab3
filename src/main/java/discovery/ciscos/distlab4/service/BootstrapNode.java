@@ -18,19 +18,15 @@ public class BootstrapNode {
 
     public void bootstrap() {
         discovery.sendBootstrap(context.getNodeName(), context.getIp());
-
         Integer nodesBefore = discovery.awaitBootstrapAck(Duration.ofSeconds(5));
-
         if (nodesBefore == null) {
             System.out.println("[Bootstrap] Geen ACK ontvangen, veronderstel enige node.");
             return;
         }
-
         if (nodesBefore < 1) {
             System.out.println("[Bootstrap] Enige node op de ring, previousID = nextID = zichzelf.");
             return;
         }
-
         // er zijn andere nodes, wacht op unicast antwoorden van buren
         awaitNeighbourResponses();
     }
