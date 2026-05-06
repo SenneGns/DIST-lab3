@@ -60,7 +60,7 @@ public class NamingService {
         Map<Integer, String> nodes = nodeRepository.getAllNodes();
         Integer bestHash = null;
         for (Integer nodeHash : nodes.keySet()) {
-            if (nodeHash < fileHash) {
+            if (nodeHash <= fileHash) {
                 if (bestHash == null || nodeHash > bestHash) {
                     bestHash = nodeHash;
                 }

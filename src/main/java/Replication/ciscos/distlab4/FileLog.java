@@ -61,18 +61,18 @@ public class FileLog {
         load();
     }
 
-    public void addEntry(String fileName, int fileHash, String downloadLocation) {
+    public synchronized void addEntry(String fileName, int fileHash, String downloadLocation) {
         entries.add(new LogEntry(fileName, fileHash, downloadLocation));
         save();
         System.out.println("[FileLog] Entry toegevoegd: " + fileName + " van " + downloadLocation);
     }
 
-    public void removeEntry(String fileName) {
+    public synchronized void removeEntry(String fileName) {
         entries.removeIf(e -> e.fileName.equals(fileName));
         save();
     }
 
-    public void updateDownloadLocation(String fileName, String newLocation) {
+    public synchronized void updateDownloadLocation(String fileName, String newLocation) {
         entries.stream()
                 .filter(e -> e.fileName.equals(fileName))
                 .findFirst()
@@ -86,8 +86,8 @@ public class FileLog {
 //                .ifPresent(e -> { e.downloadedByOthers = true; save(); });
 //    }
 
-    public List<LogEntry> getEntries() {
-        return entries;
+    public synchronized List<LogEntry> getEntries() {
+        return new ArrayList<>(entries);
     }
 
 
