@@ -6,6 +6,7 @@ import Replication.ciscos.distlab4.FileTransfer;
 import discovery.ciscos.distlab4.multicast.NodeMulticastListener;
 import discovery.ciscos.distlab4.service.*;
 import namingserver.ciscos.distlab3.service.HashService;
+import agents.ciscos.distlab6.SyncAgent;
 
 import java.io.File;
 
@@ -39,6 +40,16 @@ public class NodeApplication {
 
         NodeHttpServer httpServer = new NodeHttpServer(8081, context, replicaFilesPath);
         httpServer.start();
+
+        FileLog fileLog = new FileLog(replicaFilesPath);
+
+        SyncAgent syncAgent = new SyncAgent();
+        syncAgent.setContext(fileLog, currentID);
+        Thread syncThread = new Thread(syncAgent, "sync-agent");
+        syncThread.setDaemon(true);
+        syncThread.start();
+
+        Dus het wordt:
 
         FileTransfer.startReceiver(replicaFilesPath);
         ReplicationService replication = new ReplicationService(NAMING_SERVER_URL, localFilesPath);
