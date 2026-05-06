@@ -1,10 +1,12 @@
 package discovery.ciscos.distlab4;
 
 import Replication.ciscos.distlab4.*;
-import agents.ciscos.distlab6.SyncAgent;
+import discovery.ciscos.distlab4.service.FailureDetector;
+import Replication.ciscos.distlab4.FileTransfer;
 import discovery.ciscos.distlab4.multicast.NodeMulticastListener;
 import discovery.ciscos.distlab4.service.*;
 import namingserver.ciscos.distlab3.service.HashService;
+import agents.ciscos.distlab6.SyncAgent;
 
 import java.io.File;
 
@@ -60,13 +62,14 @@ public class NodeApplication {
         ShutdownHook shutdownHook = new ShutdownHook(NAMING_SERVER_URL, context, replicaFilesPath, localFilesPath);
         shutdownHook.register();
 
-        FailureDetector failureDetector = new FailureDetector(NAMING_SERVER_URL, context,
-                fileLog, replicaFilesPath);
+        FailureDetector failureDetector = new FailureDetector(NAMING_SERVER_URL, context);
         failureDetector.start();
 
         System.out.println("[Node] " + nodeName + " actief met ID=" + currentID);
         System.out.println("[Node] previousID=" + context.getPreviousID() + " nextID=" + context.getNextID());
 
+        // node actief houden
         Thread.currentThread().join();
     }
+
 }
