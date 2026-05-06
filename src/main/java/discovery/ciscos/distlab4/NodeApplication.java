@@ -62,7 +62,7 @@ public class NodeApplication {
         ShutdownHook shutdownHook = new ShutdownHook(NAMING_SERVER_URL, context, replicaFilesPath, localFilesPath);
         shutdownHook.register();
 
-        FailureDetector failureDetector = new FailureDetector(NAMING_SERVER_URL, context);
+        FailureDetector failureDetector = new FailureDetector(NAMING_SERVER_URL, context, fileLog, replicaFilesPath);
         failureDetector.start();
 
         System.out.println("[Node] " + nodeName + " actief met ID=" + currentID);

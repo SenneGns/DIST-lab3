@@ -67,7 +67,8 @@ public class SyncAgent implements Runnable, Serializable {
             }
             if (entry.locked) {
                 agentFileList.put(entry.fileName, true);
-            } else if (!agentFileList.getOrDefault(entry.fileName, false)) {
+            } else if (agentFileList.getOrDefault(entry.fileName, false)) {
+                // log zegt ontgrendeld maar agentlijst zegt nog vergrendeld → ontgrendelen
                 agentFileList.put(entry.fileName, false);
             }
         }
