@@ -25,7 +25,7 @@ public class MulticastListenerService {
 
     public MulticastListenerService(HashService hashService, Mappingfunction nodeRepository) {
         this.hashService = hashService;
-        this.nodeRepository = nodeRepository;
+        this.nodeRepository = nodeRepository; //doet taken van namingserver, door postconstruct is het dus deel van namingserver en deze functies ook
     }
 
     @PostConstruct
@@ -55,7 +55,8 @@ public class MulticastListenerService {
     private void handlePacket(DatagramPacket packet) {
         String message = new String(packet.getData(), packet.getOffset(), packet.getLength(), StandardCharsets.UTF_8).trim();
         System.out.println("[NS] Ontvangen multicast: " + message);
-        String[] parts = message.split(":", 3);
+        String[] parts = message.split(":", 3); //(prefix, naam, ip) (moet starten met PREFIX)
+        //check of het bericht aan het protocol voldoet
         if (parts.length != 3 || !BOOTSTRAP_PREFIX.equals(parts[0])) {
             System.out.println("[NS] Ongeldig multicastbericht genegeerd.");
             return;
@@ -66,11 +67,12 @@ public class MulticastListenerService {
             System.out.println("[NS] Leeg nodeName of nodeIP ontvangen.");
             return;
         }
-        handleBootstrap(nodeName, nodeIp, packet.getAddress());
+        handleBootstrap(nodeName, nodeIp, packet.getAddress()); //als validatie passt dus
     }
 
+    //register de nieuwe node als goed is dus
     private void handleBootstrap(String nodeName, String nodeIp, InetAddress senderAddress) {
-        int nodesBefore = nodeRepository.getAllNodes().size();
+        int nodesBefore = nodeRepository.getAllNodes().size(); //vorige aantal nodes
         int nodeHash = hashService.hash(nodeName);
         if (!nodeRepository.getAllNodes().containsKey(nodeHash)) {
             nodeRepository.addNode(nodeHash, nodeIp);
@@ -81,8 +83,9 @@ public class MulticastListenerService {
         sendBootstrapAck(senderAddress, nodesBefore);
     }
 
+    //stuurt een unicast bevestiging naar de zender met het aantal nodes dat al in het netwerk zat.
     private void sendBootstrapAck(InetAddress receiverAddress, int nodesBefore) {
-        String response = "BOOTSTRAP_ACK:" + nodesBefore;
+        String response = "BOOTSTRAP_ACK:" + nodesBefore; //je gaat de vorige aantal nodes teruggeven
         byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
         try (DatagramSocket socket = new DatagramSocket()) {
             DatagramPacket responsePacket = new DatagramPacket(responseBytes, responseBytes.length, receiverAddress, UNICAST_REPLY_PORT);

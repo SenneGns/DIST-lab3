@@ -64,17 +64,43 @@ public class NodeMulticastListener {
         int next = context.getNextID();
         int previous = context.getPreviousID();
 
-        if (current < newHash && newHash < next) {
-            context.setNextID(newHash);
-            sendUnicast(packet.getAddress(), "NEIGHBOUR:" + current + ":" + next);
-            System.out.println("[Node] nextID updated to " + newHash);
-        } else if (previous < newHash && newHash < current) {
+        if (previous == current && next == current) {
             context.setPreviousID(newHash);
-            sendUnicast(packet.getAddress(), "NEIGHBOUR:" + current + ":" + previous);
+            context.setNextID(newHash);
+
+            sendUnicast(packet.getAddress(), "NEIGHBOUR:" + current + ":" + current);
+
+            System.out.println("[Node] Only node: previousID and nextID updated to " + newHash);
+
+        } else if (isBetween(current, newHash, next)) {
+            context.setNextID(newHash);
+
+            // For the new node: previous = current, next = old next
+            sendUnicast(packet.getAddress(), "NEIGHBOUR:" + current + ":" + next);
+
+            System.out.println("[Node] nextID updated to " + newHash);
+
+        } else if (isBetween(previous, newHash, current)) {
+            context.setPreviousID(newHash);
+
+            // For the new node: previous = old previous, next = current
+            sendUnicast(packet.getAddress(), "NEIGHBOUR:" + previous + ":" + current);
+
             System.out.println("[Node] previousID updated to " + newHash);
         }
     }
 
+    private boolean isBetween(int start, int value, int end) {
+        if (start == end) {
+            return value != start;
+        }
+
+        if (start < end) {
+            return start < value && value < end;
+        }
+
+        return value > start || value < end;
+    }
     private void sendUnicast(InetAddress receiver, String message) {
         byte[] buf = message.getBytes(StandardCharsets.UTF_8);
         try (DatagramSocket socket = new DatagramSocket()) {
