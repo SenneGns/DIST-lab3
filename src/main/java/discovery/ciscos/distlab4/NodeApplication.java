@@ -1,5 +1,6 @@
 package discovery.ciscos.distlab4;
 
+import Replication.ciscos.distlab4.FileLog;
 import Replication.ciscos.distlab4.FileTransfer;
 import Replication.ciscos.distlab4.FileWatcher;
 import Replication.ciscos.distlab4.ReplicationService;
@@ -9,7 +10,10 @@ import namingserver.ciscos.distlab3.service.HashService;
 
 public class NodeApplication {
 
-    private static final String NAMING_SERVER_URL = "http://localhost:8080";
+    private static final String NAMING_SERVER_URL =
+            System.getenv("NAMING_SERVER_URL") != null
+                    ? System.getenv("NAMING_SERVER_URL")
+                    : "http://localhost:8080";
 
     public static void main(String[] args) throws InterruptedException {
         if (args.length < 3) {
@@ -33,6 +37,14 @@ public class NodeApplication {
 
         BootstrapNode bootstrap = new BootstrapNode(context);
         bootstrap.bootstrap();
+
+        FileLog fileLog = new FileLog(localFilesPath);
+        NodeHttpServer nodeHttpServer = new NodeHttpServer(8080, context, localFilesPath, NAMING_SERVER_URL, fileLog, localFilesPath);
+        try {
+            nodeHttpServer.start();
+        } catch (java.io.IOException e) {
+            System.err.println("[Node] Fout bij starten HTTP server: " + e.getMessage());
+        }
 
         FileTransfer.startReceiver(localFilesPath);
 
