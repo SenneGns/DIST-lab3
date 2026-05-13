@@ -17,33 +17,49 @@ public class BootstrapNode {
     }
 
     public void bootstrap() {
-        Integer nodesBefore = discovery.sendBootstrapAndAwaitAck(
-                context.getNodeName(), context.getIp(), Duration.ofSeconds(5));
+        try (DatagramSocket neighbourSocket = new DatagramSocket(DiscoveryService.NEIGHBOUR_PORT)) {
+            neighbourSocket.setSoTimeout(5000);
 
-        if (nodesBefore == null) {
-            System.out.println("[Bootstrap] Geen ACK ontvangen, veronderstel enige node.");
-            return;
+            Integer nodesBefore = discovery.sendBootstrapAndAwaitAck(
+                    context.getNodeName(),
+                    context.getIp(),
+                    Duration.ofSeconds(5)
+            );
+
+            if (nodesBefore == null) {
+                System.out.println("[Bootstrap] Geen ACK ontvangen, veronderstel enige node.");
+                return;
+            }
+
+            if (nodesBefore < 1) {
+                System.out.println("[Bootstrap] Enige node op de ring, previousID = nextID = zichzelf.");
+                return;
+            }
+
+            awaitNeighbourResponses(neighbourSocket);
+
+        } catch (Exception e) {
+            System.out.println("[Bootstrap] Fout tijdens bootstrap: " + e.getMessage());
         }
-
-        if (nodesBefore < 1) {
-            System.out.println("[Bootstrap] TEST IF THE CODE IS UPDATED");
-            System.out.println("[Bootstrap] Enige node op de ring, previousID = nextID = zichzelf.");
-            return;
-        }
-
-        // er zijn andere nodes, wacht op unicast antwoorden van buren
-        awaitNeighbourResponses();
     }
 
-    private void awaitNeighbourResponses() {
+    private void awaitNeighbourResponses(DatagramSocket socket) {
         long deadline = System.currentTimeMillis() + 5000;
-        try (DatagramSocket socket = new DatagramSocket(DiscoveryService.NEIGHBOUR_PORT)) {
-            socket.setSoTimeout(5000);
+
+        try {
             while (System.currentTimeMillis() < deadline) {
                 byte[] buf = new byte[256];
                 DatagramPacket packet = new DatagramPacket(buf, buf.length);
+
                 socket.receive(packet);
-                String msg = new String(packet.getData(), packet.getOffset(), packet.getLength(), StandardCharsets.UTF_8).trim();
+
+                String msg = new String(
+                        packet.getData(),
+                        packet.getOffset(),
+                        packet.getLength(),
+                        StandardCharsets.UTF_8
+                ).trim();
+
                 System.out.println("[Bootstrap] Ontvangen: " + msg);
                 handleNeighbourResponse(msg);
             }
