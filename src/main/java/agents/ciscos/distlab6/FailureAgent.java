@@ -20,6 +20,8 @@ public class FailureAgent implements Runnable, Serializable {
     private final int newOwnerNodeId;
     private final String newOwnerIp;
 
+    private boolean hasStarted = false;
+
     private transient FileLog fileLog;
     private transient String replicaFilesPath;
     private transient int currentNodeId;
@@ -39,6 +41,10 @@ public class FailureAgent implements Runnable, Serializable {
 
     /** Geeft true als de agent de volledige ring heeft doorlopen. */
     public boolean isDone(int nodeId) {
+        if (!hasStarted) {
+            hasStarted = true;
+            return false;
+        }
         return nodeId == startNodeId;
     }
 
@@ -81,7 +87,7 @@ public class FailureAgent implements Runnable, Serializable {
             }
             byte[] bytes = baos.toByteArray();
 
-            URL url = new URL("http://" + ip + ":8081/node/receiveAgent");
+            URL url = new URL("http://" + ip + ":8080/node/receiveAgent");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setDoOutput(true);
@@ -98,7 +104,7 @@ public class FailureAgent implements Runnable, Serializable {
     private boolean checkNodeHasFile(String ip, String fileName) {
         try {
             String encoded = java.net.URLEncoder.encode(fileName, StandardCharsets.UTF_8);
-            URL url = new URL("http://" + ip + ":8081/node/hasFile?filename=" + encoded);
+            URL url = new URL("http://" + ip + ":8080/node/hasFile?filename=" + encoded);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setConnectTimeout(2000);

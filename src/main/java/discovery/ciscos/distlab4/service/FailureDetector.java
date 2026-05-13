@@ -1,5 +1,7 @@
 package discovery.ciscos.distlab4.service;
 
+import agents.ciscos.distlab6.FailureAgent;
+
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -65,6 +67,13 @@ public class FailureDetector {
         // update buren
         updateNeighbour(newPrevious, "setNext", newNext);
         updateNeighbour(newNext, "setPrevious", newPrevious);
+
+        // dispatch FailureAgent voordat gevallen node uit naming server wordt verwijderd
+        String newPreviousIp = getIpFromNamingServer(newPrevious);
+        if (newPreviousIp != null) {
+            FailureAgent agent = new FailureAgent(failedNodeId, context.getCurrentID(), newPrevious, newPreviousIp);
+            agent.forwardToNode(context.getIp());
+        }
 
         // verwijder gevallen node uit naming server
         removeFromNamingServer(failedNodeId);

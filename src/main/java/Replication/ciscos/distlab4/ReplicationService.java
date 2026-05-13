@@ -52,14 +52,12 @@ public class ReplicationService {
         try {
             String ownerIp = getOwnerIp(fileName);
             if (ownerIp == null) return;
-            String urlStr = "http://" + ownerIp + ":8081/node/deleteReplica?filename="
+            String urlStr = "http://" + ownerIp + ":8080/node/deleteReplica?filename="
                     + java.net.URLEncoder.encode(fileName, StandardCharsets.UTF_8);
             HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection();
-            conn.setRequestMethod("POST");
+            conn.setRequestMethod("DELETE");
             conn.setConnectTimeout(2000);
             conn.setReadTimeout(2000);
-            conn.setDoOutput(true);
-            conn.getOutputStream().write(new byte[0]);
             System.out.println("[Replication] Replica verwijderd: " + fileName + " op " + ownerIp);
         } catch (Exception e) {
             System.err.println("[Replication] Fout bij verwijderen replica: " + e.getMessage());

@@ -1,18 +1,27 @@
 package discovery.ciscos.distlab4.service;
 
+import Replication.ciscos.distlab4.FileLog;
+import Replication.ciscos.distlab4.FileTransfer;
+
+import java.io.File;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 public class ShutdownHook {
 
     private final String namingServerUrl;
     private final NodeContext context;
+    private final FileLog fileLog;
+    private final String replicaFilesPath;
 
-    public ShutdownHook(String namingServerUrl, NodeContext context) {
+    public ShutdownHook(String namingServerUrl, NodeContext context, FileLog fileLog, String replicaFilesPath) {
         this.namingServerUrl = namingServerUrl.endsWith("/") ? namingServerUrl.substring(0, namingServerUrl.length() - 1) : namingServerUrl;
         this.context = context;
+        this.fileLog = fileLog;
+        this.replicaFilesPath = replicaFilesPath;
     }
 
     public void register() {
@@ -20,9 +29,41 @@ public class ShutdownHook {
     }
 
     private void shutdown() {
+        transferReplicasToPrevious();
+        notifyFileOwners();
         notifyPreviousNode();
         notifyNextNode();
         leaveNamingServer();
+    }
+
+    private void transferReplicasToPrevious() {
+        String previousIp = getIpFromNamingServer(context.getPreviousID());
+        if (previousIp == null) return;
+        List<FileLog.LogEntry> entries = fileLog.getEntriesCopy();
+        for (FileLog.LogEntry entry : entries) {
+            File file = new File(replicaFilesPath, entry.fileName);
+            if (file.exists()) {
+                FileTransfer.sendFile(previousIp, file);
+                System.out.println("[Shutdown] Replica overgedragen naar " + previousIp + ": " + entry.fileName);
+            }
+        }
+    }
+
+    private void notifyFileOwners() {
+        List<FileLog.LogEntry> entries = fileLog.getEntriesCopy();
+        for (FileLog.LogEntry entry : entries) {
+            if (entry.downloadLocation == null || entry.downloadLocation.isEmpty()) continue;
+            try {
+                String encoded = URLEncoder.encode(entry.fileName, StandardCharsets.UTF_8);
+                String sourceEncoded = URLEncoder.encode(context.getIp(), StandardCharsets.UTF_8);
+                String url = "http://" + entry.downloadLocation + ":8080/node/localFileTerminating"
+                        + "?filename=" + encoded + "&sourceIp=" + sourceEncoded;
+                sendPost(url);
+                System.out.println("[Shutdown] Owner genotificeerd: " + entry.downloadLocation + " voor " + entry.fileName);
+            } catch (Exception e) {
+                System.out.println("[Shutdown] Fout bij notificeren owner: " + e.getMessage());
+            }
+        }
     }
 
     // stuur nextID naar vorige buur zodat die zijn nextID kan updaten
