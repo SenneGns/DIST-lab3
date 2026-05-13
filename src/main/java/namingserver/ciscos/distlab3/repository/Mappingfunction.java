@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class Mappingfunction {
 
-    private static Map<Integer, String> nodes = new ConcurrentHashMap<>();
+    private Map<Integer, String> nodes = new ConcurrentHashMap<>();
     private final ObjectMapper mapper = new ObjectMapper();
     private final File file = new File("nodes.json");
 
@@ -30,7 +30,7 @@ public class Mappingfunction {
         save();
     }
 
-    public static Map<Integer, String> getAllNodes() {
+    public Map<Integer, String> getAllNodes() {
         return nodes;
     }
 

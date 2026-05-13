@@ -1,5 +1,8 @@
 package discovery.ciscos.distlab4;
 
+import Replication.ciscos.distlab4.FileTransfer;
+import Replication.ciscos.distlab4.FileWatcher;
+import Replication.ciscos.distlab4.ReplicationService;
 import discovery.ciscos.distlab4.multicast.NodeMulticastListener;
 import discovery.ciscos.distlab4.service.*;
 import namingserver.ciscos.distlab3.service.HashService;

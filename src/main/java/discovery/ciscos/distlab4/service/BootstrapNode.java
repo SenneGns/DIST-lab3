@@ -18,7 +18,7 @@ public class BootstrapNode {
 
     public void bootstrap() {
         Integer nodesBefore = discovery.sendBootstrapAndAwaitAck(
-    context.getNodeName(), context.getIp(), Duration.ofSeconds(5));
+                context.getNodeName(), context.getIp(), Duration.ofSeconds(5));
 
         if (nodesBefore == null) {
             System.out.println("[Bootstrap] Geen ACK ontvangen, veronderstel enige node.");
