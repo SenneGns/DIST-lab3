@@ -220,6 +220,23 @@
         /* Views */
         .view { display: none; }
         .view.active { display: block; }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #B5006E;
+            color: white;
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-size: 13px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        .toast.show { opacity: 1; }
     </style>
 </head>
 <body>
@@ -296,12 +313,16 @@
     </div>
 </div>
 
+<div id="toast" class="toast"></div>
+
 <script>
     const NODE_PORT = 8081;
     const VIEWS = ['dashboard', 'nodes', 'files'];
 
     let allNodes = [];
     let currentView = 'dashboard';
+    const nodeInfoCache = {};
+    let firstLoad = true;
 
     function showView(view) {
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -313,33 +334,49 @@
         if (view === 'files') { updateNodeSelect(); loadFiles(); }
     }
 
+    async function fetchNodeInfo(ip) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 2000);
+        try {
+            const info = await fetch(`http://${ip}:${NODE_PORT}/node/info`, { signal: controller.signal });
+            clearTimeout(timeout);
+            if (info.ok) {
+                const d = await info.json();
+                nodeInfoCache[ip] = { name: d.nodeName, prevID: d.previousID, nextID: d.nextID };
+                return { name: d.nodeName, prevID: d.previousID, nextID: d.nextID, online: true };
+            }
+        } catch (_) { clearTimeout(timeout); }
+        return nodeInfoCache[ip] ? { ...nodeInfoCache[ip], online: false } : null;
+    }
+
     async function fetchNodes() {
         try {
             const res = await fetch('/naming/nodes');
             if (res.status === 204) return [];
             const data = await res.json();
-            const nodes = [];
-            for (const [id, ip] of Object.entries(data)) {
+            return await Promise.all(Object.entries(data).map(async ([id, ip]) => {
                 const node = { id: parseInt(id), ip, name: ip, prevID: '-', nextID: '-', online: false };
-                try {
-                    const info = await fetch(`http://${ip}:${NODE_PORT}/node/info`);
-                    if (info.ok) {
-                        const d = await info.json();
-                        node.name    = d.nodeName;
-                        node.prevID  = d.previousID;
-                        node.nextID  = d.nextID;
-                        node.online  = true;
-                    }
-                } catch (_) {}
-                nodes.push(node);
-            }
-            return nodes;
+                const info = await fetchNodeInfo(ip);
+                if (info) Object.assign(node, info);
+                return node;
+            }));
         } catch (_) {
             return null;
         }
     }
 
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
     async function refresh() {
+        if (firstLoad) {
+            document.getElementById('dashboard-nodes').innerHTML = '<tr><td colspan="4" style="color:#666">Loading...</td></tr>';
+            document.getElementById('nodes-grid').innerHTML = '<div style="color:#666;font-size:13px;">Loading...</div>';
+        }
         const nodes = await fetchNodes();
         if (nodes === null) {
             document.getElementById('ns-status').innerHTML = '<span class="status-dot dot-red"></span>offline';
@@ -350,6 +387,7 @@
             document.getElementById('ns-count').textContent = nodes.length;
             allNodes = nodes;
         }
+        firstLoad = false;
         renderDashboard();
         if (currentView === 'nodes') renderNodeCards();
         if (currentView === 'files') updateNodeSelect();
@@ -428,7 +466,9 @@
         await fetch(`/naming/nodes?nodeName=${encodeURIComponent(name)}&ip=${encodeURIComponent(ip)}`, { method: 'POST' });
         document.getElementById('input-name').value = '';
         document.getElementById('input-ip').value = '';
-        refresh();
+        showToast('Node is being added...');
+        await refresh();
+        renderNodeCards();
     }
 
     async function removeNode(id) {
