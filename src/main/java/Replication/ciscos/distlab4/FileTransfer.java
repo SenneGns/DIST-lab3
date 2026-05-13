@@ -1,7 +1,5 @@
 package Replication.ciscos.distlab4;
 
-import namingserver.ciscos.distlab3.service.HashService;
-
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -9,14 +7,9 @@ import java.net.Socket;
 public class FileTransfer {
 
     private static final int PORT = 5000;
-    private static final HashService hashService = new HashService();
 
+    // Makes a TCP connection for sending files, and sends the files
     public static void sendFile(String ip, File file) {
-        sendFile(ip, file, "");
-    }
-
-    // originalOwnerIp: bewaar originele downloadLocation (leeg = gebruik senderIp bij ontvanger)
-    public static void sendFile(String ip, File file, String originalOwnerIp) {
         try (Socket socket = new Socket(ip, PORT);
              FileInputStream fis = new FileInputStream(file);
              OutputStream out = socket.getOutputStream()) {
@@ -24,7 +17,6 @@ public class FileTransfer {
             DataOutputStream dos = new DataOutputStream(out);
             dos.writeUTF(file.getName());
             dos.writeLong(file.length());
-            dos.writeUTF(originalOwnerIp == null ? "" : originalOwnerIp);
 
             byte[] buffer = new byte[4096];
             int read;
@@ -37,14 +29,14 @@ public class FileTransfer {
         }
     }
 
+    // waits for incoming files and starts receiveFile for each file.
     public static void startReceiver(String saveDirectory) {
         Thread t = new Thread(() -> {
             try (ServerSocket serverSocket = new ServerSocket(PORT)) {
                 System.out.println("[FileTransfer] Ontvanger actief op poort " + PORT);
                 while (true) {
                     Socket socket = serverSocket.accept();
-                    String remoteIp = socket.getInetAddress().getHostAddress();
-                    new Thread(() -> receiveFile(socket, saveDirectory, remoteIp)).start();
+                    new Thread(() -> receiveFile(socket, saveDirectory)).start();
                 }
             } catch (Exception e) {
                 System.err.println("[FileTransfer] Fout bij ontvangen: " + e.getMessage());
@@ -54,13 +46,12 @@ public class FileTransfer {
         t.start();
     }
 
-    private static void receiveFile(Socket socket, String saveDirectory, String senderIp) {
+    // receives a file and saves it to the local folder.
+    private static void receiveFile(Socket socket, String saveDirectory) {
         try (InputStream in = socket.getInputStream()) {
             DataInputStream dis = new DataInputStream(in);
             String fileName = dis.readUTF();
             long fileSize = dis.readLong();
-            String originalOwnerIp = dis.readUTF();
-            String downloadLocation = originalOwnerIp.isEmpty() ? senderIp : originalOwnerIp;
 
             File outFile = new File(saveDirectory, fileName);
             try (FileOutputStream fos = new FileOutputStream(outFile)) {
@@ -72,14 +63,7 @@ public class FileTransfer {
                     remaining -= read;
                 }
             }
-
-            // log aanmaken als owner
-            int fileHash = hashService.hash(fileName);
-            FileLog log = new FileLog(saveDirectory);
-            log.removeEntry(fileName); // verwijder eventuele oude entry
-            log.addEntry(fileName, fileHash, downloadLocation);
-
-            System.out.println("[FileTransfer] Bestand ontvangen: " + fileName + " van " + senderIp + " (owner: " + downloadLocation + ")");
+            System.out.println("[FileTransfer] Bestand ontvangen: " + fileName);
         } catch (Exception e) {
             System.err.println("[FileTransfer] Fout bij verwerken ontvangen bestand: " + e.getMessage());
         }

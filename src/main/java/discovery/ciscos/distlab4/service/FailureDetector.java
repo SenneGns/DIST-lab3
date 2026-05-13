@@ -1,30 +1,18 @@
 package discovery.ciscos.distlab4.service;
 
-import Replication.ciscos.distlab4.FileLog;
-import agents.ciscos.distlab6.FailureAgent;
-
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
 
 public class FailureDetector {
 
     private final String namingServerUrl;
     private final NodeContext context;
-    private final FileLog fileLog;
-    private final String replicaFilesPath;
     private static final int PING_INTERVAL_MS = 2000;
 
-    public FailureDetector(String namingServerUrl, NodeContext context,
-                           FileLog fileLog, String replicaFilesPath) {
-        this.namingServerUrl = namingServerUrl.endsWith("/")
-                ? namingServerUrl.substring(0, namingServerUrl.length() - 1)
-                : namingServerUrl;
+    public FailureDetector(String namingServerUrl, NodeContext context) {
+        this.namingServerUrl = namingServerUrl.endsWith("/") ? namingServerUrl.substring(0, namingServerUrl.length() - 1) : namingServerUrl;
         this.context = context;
-        this.fileLog = fileLog;
-        this.replicaFilesPath = replicaFilesPath;
     }
 
     public void start() {
@@ -51,7 +39,7 @@ public class FailureDetector {
         try {
             String ip = getIpFromNamingServer(nodeId);
             if (ip == null) return;
-            URL url = new URL("http://" + ip + ":8081/node/ping");
+            URL url = new URL("http://" + ip + ":8080/node/ping");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setConnectTimeout(2000);
@@ -65,6 +53,7 @@ public class FailureDetector {
     }
 
     private void handleFailure(int failedNodeId) {
+        // haal buren op van de gevallen node via naming server
         int newPrevious = getNeighbour(failedNodeId, "previous");
         int newNext = getNeighbour(failedNodeId, "next");
 
@@ -73,48 +62,16 @@ public class FailureDetector {
             return;
         }
 
-        // Ring herstellen
+        // update buren
         updateNeighbour(newPrevious, "setNext", newNext);
         updateNeighbour(newNext, "setPrevious", newPrevious);
 
-        // IP van nieuwe eigenaar ophalen vóór verwijdering
-        String newOwnerIp = getIpFromNamingServer(newNext);
-
-        // Gevallen node verwijderen uit naming server
+        // verwijder gevallen node uit naming server
         removeFromNamingServer(failedNodeId);
 
-        // Eigen context bijwerken indien nodig
+        // update eigen context indien nodig
         if (context.getPreviousID() == failedNodeId) context.setPreviousID(newPrevious);
         if (context.getNextID() == failedNodeId) context.setNextID(newNext);
-
-        // FailureAgent starten om eigendom van bestanden over te dragen
-        if (newOwnerIp != null) {
-            dispatchFailureAgent(failedNodeId, newNext, newOwnerIp);
-        }
-    }
-
-    private void dispatchFailureAgent(int failedNodeId, int newOwnerNodeId, String newOwnerIp) {
-        FailureAgent agent = new FailureAgent(
-                failedNodeId, context.getCurrentID(), newOwnerNodeId, newOwnerIp);
-
-        // Lokaal uitvoeren op de startnode
-        agent.setContext(fileLog, replicaFilesPath, context.getCurrentID());
-        Thread t = new Thread(agent, "failure-agent-local");
-        t.start();
-        try {
-            t.join();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return;
-        }
-
-        // Doorsturen naar volgende node in de ring
-        String nextIp = getIpFromNamingServer(context.getNextID());
-        if (nextIp != null) {
-            agent.forwardToNode(nextIp);
-        } else {
-            System.out.println("[Failure] Geen volgende node om agent naar door te sturen.");
-        }
     }
 
     private int getNeighbour(int nodeId, String type) {
@@ -127,7 +84,8 @@ public class FailureDetector {
             conn.setReadTimeout(2000);
             String response = new String(conn.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
 
-            List<Integer> ids = new ArrayList<>();
+            // parse alle node IDs uit de JSON map
+            java.util.List<Integer> ids = new java.util.ArrayList<>();
             String[] entries = response.replace("{", "").replace("}", "").replace("\"", "").split(",");
             for (String entry : entries) {
                 String[] kv = entry.split(":");
@@ -140,12 +98,14 @@ public class FailureDetector {
             ids.sort(Integer::compareTo);
 
             if (type.equals("previous")) {
+                // grootste hash kleiner dan nodeId
                 int best = -1;
                 for (int id : ids) {
                     if (id < nodeId) best = id;
                 }
                 return best == -1 ? ids.get(ids.size() - 1) : best;
             } else {
+                // kleinste hash groter dan nodeId
                 for (int id : ids) {
                     if (id > nodeId) return id;
                 }
@@ -161,7 +121,7 @@ public class FailureDetector {
         try {
             String ip = getIpFromNamingServer(nodeId);
             if (ip == null) return;
-            String urlStr = "http://" + ip + ":8081/node/" + endpoint + "?value=" + value;
+            String urlStr = "http://" + ip + ":8080/node/" + endpoint + "?value=" + value;
             URL url = new URL(urlStr);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");

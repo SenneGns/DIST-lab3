@@ -1,6 +1,5 @@
 package discovery.ciscos.distlab4.multicast;
 
-import discovery.ciscos.distlab4.service.DiscoveryService;
 import discovery.ciscos.distlab4.service.NodeContext;
 import namingserver.ciscos.distlab3.service.HashService;
 
@@ -10,12 +9,14 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.nio.charset.StandardCharsets;
+import java.net.NetworkInterface;
+import java.net.InetSocketAddress;
 
 public class NodeMulticastListener {
 
     private static final String MULTICAST_GROUP = "230.0.0.1";
     private static final int MULTICAST_PORT = 4446;
-    private static final int UNICAST_REPLY_PORT = DiscoveryService.NEIGHBOUR_PORT;
+    private static final int UNICAST_REPLY_PORT = 4448;
     private static final String BOOTSTRAP_PREFIX = "BOOTSTRAP";
 
     private final NodeContext context;
@@ -36,7 +37,17 @@ public class NodeMulticastListener {
         try (MulticastSocket socket = new MulticastSocket(MULTICAST_PORT)) {
             InetAddress group = InetAddress.getByName(MULTICAST_GROUP);
             socket.setReuseAddress(true);
-            socket.joinGroup(group);
+
+            // Expliciet eth0 opgeven zodat Docker de juiste interface gebruikt
+            NetworkInterface ni = NetworkInterface.getByName("eth0");
+            if (ni != null) {
+                socket.joinGroup(new InetSocketAddress(group, MULTICAST_PORT), ni);
+                System.out.println("[Node] Multicast joined op eth0");
+            } else {
+                socket.joinGroup(group);
+                System.out.println("[Node] Multicast joined op standaard interface");
+            }
+
             System.out.println("[Node] Multicast listener actief");
             while (true) {
                 byte[] buffer = new byte[512];
@@ -54,42 +65,26 @@ public class NodeMulticastListener {
         String[] parts = message.split(":", 3);
         if (parts.length != 3 || !BOOTSTRAP_PREFIX.equals(parts[0])) return;
 
-        String newNodeName = parts[1].trim(); //want nodename is het tweede dat je stuurt
+        String newNodeName = parts[1].trim();
         String newNodeIp = parts[2].trim();
 
         // eigen bericht negeren
         if (newNodeName.equals(context.getNodeName())) return;
 
-        //hier ga je dus hash berekenen van de nieuwe
         int newHash = hashService.hash(newNodeName);
         int current = context.getCurrentID();
         int next = context.getNextID();
         int previous = context.getPreviousID();
-        //hier ga je dus zien of die nieuwe hash van de nieuwe node die info stuurde via multicast of deze je nextid of previousid gaat worden
-        if (previous == current && next == current) {
-            context.setPreviousID(newHash);
+
+        if (current < newHash && newHash < next) {
             context.setNextID(newHash);
-            sendUnicast(packet.getAddress(), "NEIGHBOUR:PREVIOUS:" + current);
-            sendUnicast(packet.getAddress(), "NEIGHBOUR:NEXT:" + current);
-            System.out.println("[Node] Enige node: previousID en nextID updated to " + newHash);
-        } else if (isBetween(current, newHash, next)) {
-            context.setNextID(newHash);
-            sendUnicast(packet.getAddress(), "NEIGHBOUR:PREVIOUS:" + current);
-            sendUnicast(packet.getAddress(), "NEIGHBOUR:NEXT:" + next);
+            sendUnicast(packet.getAddress(), "NEIGHBOUR:" + current + ":" + next);
             System.out.println("[Node] nextID updated to " + newHash);
-        } else if (isBetween(previous, newHash, current)) {
+        } else if (previous < newHash && newHash < current) {
             context.setPreviousID(newHash);
-            sendUnicast(packet.getAddress(), "NEIGHBOUR:PREVIOUS:" + previous);
-            sendUnicast(packet.getAddress(), "NEIGHBOUR:NEXT:" + current);
+            sendUnicast(packet.getAddress(), "NEIGHBOUR:" + current + ":" + previous);
             System.out.println("[Node] previousID updated to " + newHash);
         }
-    }
-
-    //Controleert of een hash strikt tussen twee node IDs ligt op een circulaire ring.
-    private boolean isBetween(int start, int value, int end) {
-        if (start == end) return value != start;
-        if (start < end) return start < value && value < end;
-        return value > start || value < end;
     }
 
     private void sendUnicast(InetAddress receiver, String message) {

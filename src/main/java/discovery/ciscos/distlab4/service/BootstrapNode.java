@@ -4,7 +4,6 @@ import discovery.ciscos.distlab4.multicast.NodeMulticastListener;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
@@ -18,30 +17,26 @@ public class BootstrapNode {
     }
 
     public void bootstrap() {
-        discovery.sendBootstrap(context.getNodeName(), context.getIp());
         Integer nodesBefore = discovery.sendBootstrapAndAwaitAck(
-                context.getNodeName(),
-                context.getIp(),
-                Duration.ofSeconds(5)
-        );
+                context.getNodeName(), context.getIp(), Duration.ofSeconds(5));
+
         if (nodesBefore == null) {
             System.out.println("[Bootstrap] Geen ACK ontvangen, veronderstel enige node.");
             return;
         }
+
         if (nodesBefore < 1) {
             System.out.println("[Bootstrap] Enige node op de ring, previousID = nextID = zichzelf.");
             return;
         }
+
         // er zijn andere nodes, wacht op unicast antwoorden van buren
         awaitNeighbourResponses();
     }
 
     private void awaitNeighbourResponses() {
         long deadline = System.currentTimeMillis() + 5000;
-        try (DatagramSocket socket = new DatagramSocket(
-                DiscoveryService.NEIGHBOUR_PORT,
-                InetAddress.getByName("0.0.0.0")
-        )) {
+        try (DatagramSocket socket = new DatagramSocket(DiscoveryService.NEIGHBOUR_PORT)) {
             socket.setSoTimeout(5000);
             while (System.currentTimeMillis() < deadline) {
                 byte[] buf = new byte[256];
@@ -58,16 +53,16 @@ public class BootstrapNode {
 
     private void handleNeighbourResponse(String msg) {
         if (!msg.startsWith("NEIGHBOUR:")) return;
-        String[] parts = msg.split(":", 3);
+        String[] parts = msg.split(":");
         if (parts.length != 3) return;
 
-        String role = parts[1].trim();   // "PREVIOUS" of "NEXT"
-        int senderID = Integer.parseInt(parts[2].trim());
+        int senderID = Integer.parseInt(parts[1].trim());
+        int senderNeighbour = Integer.parseInt(parts[2].trim());
 
-        if ("NEXT".equals(role)) {
-            context.setNextID(senderID);
-        } else if ("PREVIOUS".equals(role)) {
+        if (senderID < context.getCurrentID()) {
             context.setPreviousID(senderID);
+        } else {
+            context.setNextID(senderID);
         }
     }
 }

@@ -1,34 +1,27 @@
 package discovery.ciscos.distlab4;
-//test branch
-import Replication.ciscos.distlab4.*;
-import discovery.ciscos.distlab4.service.FailureDetector;
+
 import Replication.ciscos.distlab4.FileTransfer;
+import Replication.ciscos.distlab4.FileWatcher;
+import Replication.ciscos.distlab4.ReplicationService;
 import discovery.ciscos.distlab4.multicast.NodeMulticastListener;
 import discovery.ciscos.distlab4.service.*;
 import namingserver.ciscos.distlab3.service.HashService;
-import agents.ciscos.distlab6.SyncAgent;
-
-import java.io.File;
 
 public class NodeApplication {
 
-    private static final String NAMING_SERVER_URL =
-            System.getenv("NAMING_SERVER_URL") != null
-                    ? System.getenv("NAMING_SERVER_URL")
-                    : "http://localhost:8080";
+    private static final String NAMING_SERVER_URL = "http://localhost:8080";
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) throws InterruptedException {
         if (args.length < 3) {
             System.out.println("Gebruik: NodeApplication <nodeName> <ip> <localFilesPath>");
             return;
         }
+
+
+
         String nodeName = args[0];
         String ip = args[1];
-        String localFilesPath = args[2] + "/local";
-        String replicaFilesPath = args[2] + "/replicas";
-
-        new File(localFilesPath).mkdirs();
-        new File(replicaFilesPath).mkdirs();
+        String localFilesPath = args[2];
 
         HashService hashService = new HashService();
         int currentID = hashService.hash(nodeName);
@@ -41,31 +34,18 @@ public class NodeApplication {
         BootstrapNode bootstrap = new BootstrapNode(context);
         bootstrap.bootstrap();
 
-        FileLog fileLog = new FileLog(replicaFilesPath);
+        FileTransfer.startReceiver(localFilesPath);
 
-        NodeHttpServer httpServer = new NodeHttpServer(8081, context, replicaFilesPath,
-                NAMING_SERVER_URL, fileLog, localFilesPath);
-        httpServer.start();
-
-        SyncAgent syncAgent = new SyncAgent();
-        syncAgent.setContext(fileLog, currentID, context, NAMING_SERVER_URL);
-        httpServer.setSyncAgent(syncAgent);
-
-        Thread syncThread = new Thread(syncAgent, "sync-agent");
-        syncThread.setDaemon(true);
-        syncThread.start();
-
-        FileTransfer.startReceiver(replicaFilesPath);
         ReplicationService replication = new ReplicationService(NAMING_SERVER_URL, localFilesPath);
         replication.replicateAllFiles();
 
         FileWatcher fileWatcher = new FileWatcher(localFilesPath, replication, NAMING_SERVER_URL);
         fileWatcher.start();
 
-        ShutdownHook shutdownHook = new ShutdownHook(NAMING_SERVER_URL, context, replicaFilesPath, localFilesPath);
+        ShutdownHook shutdownHook = new ShutdownHook(NAMING_SERVER_URL, context);
         shutdownHook.register();
 
-        FailureDetector failureDetector = new FailureDetector(NAMING_SERVER_URL, context, fileLog, replicaFilesPath);
+        FailureDetector failureDetector = new FailureDetector(NAMING_SERVER_URL, context);
         failureDetector.start();
 
         System.out.println("[Node] " + nodeName + " actief met ID=" + currentID);
@@ -75,4 +55,12 @@ public class NodeApplication {
         Thread.currentThread().join();
     }
 
+    private static int hash(String input) {
+        long MAX = 2147483647L;
+        long MIN = -2147483647L;
+        int NEW_MAX = 32768;
+        long raw = input.hashCode();
+        double scaled = (raw + MAX) * ((double) NEW_MAX / (MAX + Math.abs(MIN)));
+        return (int) Math.round(scaled);
+    }
 }
