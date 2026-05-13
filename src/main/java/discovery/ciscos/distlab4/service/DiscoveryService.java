@@ -1,17 +1,18 @@
 package discovery.ciscos.distlab4.service;
 
+import java.time.Duration;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 
 public class DiscoveryService {
 
     // Align with MulticastListenerService on the naming server
     public static final String GROUP = "230.0.0.1";
     public static final int GROUP_PORT = 4446;
-    public static final int ACK_PORT = 4447; // unicast reply expected here
+    public static final int ACK_PORT = 4447;
+    public static final int NEIGHBOUR_PORT = 4448;
     public static final String BOOTSTRAP_PREFIX = "BOOTSTRAP";
 
     /**
@@ -40,7 +41,10 @@ public class DiscoveryService {
      */
     public Integer awaitBootstrapAck(Duration timeout) {
         long deadline = System.currentTimeMillis() + timeout.toMillis();
-        try (DatagramSocket socket = new DatagramSocket(ACK_PORT)) {
+        try (DatagramSocket socket = new DatagramSocket(
+                ACK_PORT,
+                InetAddress.getByName("0.0.0.0")
+        )) {
             socket.setSoTimeout((int) Math.max(1, timeout.toMillis()));
             byte[] buf = new byte[256];
             DatagramPacket packet = new DatagramPacket(buf, buf.length);
@@ -55,6 +59,41 @@ public class DiscoveryService {
             long remaining = deadline - System.currentTimeMillis();
             System.out.println("[Discovery] Geen ACK binnen timeout (" + timeout.toMillis() + "ms): " + e.getMessage());
         }
+        return null;
+    }
+
+    public Integer sendBootstrapAndAwaitAck(String nodeName, String ip, Duration timeout) {
+        String msg = BOOTSTRAP_PREFIX + ":" + nodeName + ":" + ip;
+
+        try (DatagramSocket socket = new DatagramSocket(
+                ACK_PORT,
+                InetAddress.getByName("0.0.0.0")
+        )) {
+            socket.setSoTimeout((int) timeout.toMillis());
+
+            sendMulticast(msg, GROUP, GROUP_PORT);
+
+            byte[] buf = new byte[256];
+            DatagramPacket packet = new DatagramPacket(buf, buf.length);
+            socket.receive(packet);
+
+            String resp = new String(
+                    packet.getData(),
+                    packet.getOffset(),
+                    packet.getLength(),
+                    StandardCharsets.UTF_8
+            ).trim();
+
+            System.out.println("[Discovery] ACK ontvangen: " + resp);
+
+            if (resp.startsWith("BOOTSTRAP_ACK:")) {
+                return Integer.parseInt(resp.substring("BOOTSTRAP_ACK:".length()).trim());
+            }
+
+        } catch (Exception e) {
+            System.out.println("[Discovery] Geen ACK binnen timeout (" + timeout.toMillis() + "ms): " + e.getMessage());
+        }
+
         return null;
     }
 }

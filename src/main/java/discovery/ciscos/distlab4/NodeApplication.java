@@ -12,7 +12,10 @@ import java.io.File;
 
 public class NodeApplication {
 
-    private static final String NAMING_SERVER_URL = "http://localhost:8080";
+    private static final String NAMING_SERVER_URL =
+            System.getenv("NAMING_SERVER_URL") != null
+                    ? System.getenv("NAMING_SERVER_URL")
+                    : "http://localhost:8080";
 
     public static void main(String[] args) throws Exception {
         if (args.length < 3) {
