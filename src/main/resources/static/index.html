@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Monitor</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #1a1a2e;
+            color: #e0e0e0;
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 200px;
+            background: #0f0f1a;
+            padding: 20px 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-logo {
+            padding: 10px 20px 30px;
+            font-size: 13px;
+            color: #999;
+            border-bottom: 1px solid #2a2a3e;
+            margin-bottom: 20px;
+        }
+
+        .sidebar-logo span {
+            display: block;
+            font-size: 11px;
+            color: #B5006E;
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .nav-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            color: #aaa;
+            font-size: 14px;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-item:hover { color: #fff; background: #1e1e32; }
+
+        .nav-item.active {
+            color: #fff;
+            background: #1e1e32;
+            border-left: 3px solid #B5006E;
+        }
+
+        /* Main */
+        .main {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 22px;
+            color: #B5006E;
+            letter-spacing: 2px;
+        }
+
+        .refresh-info { font-size: 12px; color: #666; }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+        }
+
+        .dot-green { background: #4caf50; }
+        .dot-red   { background: #f44336; }
+
+        /* Card */
+        .card {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            font-size: 13px;
+            color: #B5006E;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+
+        /* Table */
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+
+        th {
+            text-align: left;
+            padding: 8px 12px;
+            color: #B5006E;
+            border-bottom: 1px solid #2a2a4e;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #1e1e3a;
+            color: #ccc;
+        }
+
+        tr:hover td { background: #1e2a4a; }
+
+        /* Node cards */
+        .nodes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 16px;
+        }
+
+        .node-card {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .node-card h3 {
+            font-size: 14px;
+            color: #B5006E;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #2a2a4e;
+        }
+
+        .node-field {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+
+        .node-field .label { color: #888; }
+        .node-field .value { color: #ddd; }
+
+        /* Buttons */
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            margin-top: 10px;
+        }
+
+        .btn-primary { background: #B5006E; color: white; }
+        .btn-primary:hover { background: #d4008a; }
+        .btn-danger { background: #c0392b; color: white; width: 100%; }
+        .btn-danger:hover { background: #e74c3c; }
+
+        /* Add form */
+        .add-form {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        input[type="text"] {
+            background: #0f0f1a;
+            border: 1px solid #2a2a4e;
+            color: #ddd;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            width: 200px;
+        }
+
+        input[type="text"]:focus { outline: none; border-color: #B5006E; }
+
+        /* Files */
+        .files-selector {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .files-selector label { color: #888; font-size: 13px; }
+
+        select {
+            background: #0f0f1a;
+            border: 1px solid #2a2a4e;
+            color: #ddd;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        /* Views */
+        .view { display: none; }
+        .view.active { display: block; }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="sidebar-logo">
+        <span>NETWORK MONITOR</span>
+        University of Antwerp
+    </div>
+    <div class="nav-item active" onclick="showView('dashboard')">Dashboard</div>
+    <div class="nav-item" onclick="showView('nodes')">Nodes</div>
+    <div class="nav-item" onclick="showView('files')">Files</div>
+</div>
+
+<div class="main">
+    <div class="header">
+        <h1>NETWORK MONITOR</h1>
+        <span class="refresh-info">Auto-refresh every 5s</span>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="view-dashboard" class="view active">
+        <div class="card">
+            <h2>Naming Server</h2>
+            <table>
+                <tr><td>Status</td><td id="ns-status">-</td></tr>
+                <tr><td>Nodes</td><td id="ns-count">-</td></tr>
+            </table>
+        </div>
+        <div class="card">
+            <h2>Nodes</h2>
+            <table>
+                <thead><tr><th>Name</th><th>ID</th><th>IP</th><th>Status</th></tr></thead>
+                <tbody id="dashboard-nodes"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Nodes -->
+    <div id="view-nodes" class="view">
+        <div class="card">
+            <h2>Add Node</h2>
+            <div class="add-form">
+                <input type="text" id="input-name" placeholder="Node name">
+                <input type="text" id="input-ip" placeholder="IP address">
+                <button class="btn btn-primary" onclick="addNode()">Add Node</button>
+            </div>
+        </div>
+        <div id="nodes-grid" class="nodes-grid"></div>
+    </div>
+
+    <!-- Files -->
+    <div id="view-files" class="view">
+        <div class="files-selector">
+            <label>Select node:</label>
+            <select id="node-select" onchange="loadFiles()"></select>
+        </div>
+        <div class="grid-2">
+            <div class="card">
+                <h2>Local Files</h2>
+                <table>
+                    <thead><tr><th>Filename</th></tr></thead>
+                    <tbody id="local-files"></tbody>
+                </table>
+            </div>
+            <div class="card">
+                <h2>Replicated Files</h2>
+                <table>
+                    <thead><tr><th>Filename</th><th>Hash</th><th>Owner ID</th><th>Locked</th></tr></thead>
+                    <tbody id="replicated-files"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const NODE_PORT = 8081;
+    const VIEWS = ['dashboard', 'nodes', 'files'];
+
+    let allNodes = [];
+    let currentView = 'dashboard';
+
+    function showView(view) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById('view-' + view).classList.add('active');
+        document.querySelectorAll('.nav-item')[VIEWS.indexOf(view)].classList.add('active');
+        currentView = view;
+        if (view === 'nodes') renderNodeCards();
+        if (view === 'files') { updateNodeSelect(); loadFiles(); }
+    }
+
+    async function fetchNodes() {
+        try {
+            const res = await fetch('/naming/nodes');
+            if (res.status === 204) return [];
+            const data = await res.json();
+            const nodes = [];
+            for (const [id, ip] of Object.entries(data)) {
+                const node = { id: parseInt(id), ip, name: ip, prevID: '-', nextID: '-', online: false };
+                try {
+                    const info = await fetch(`http://${ip}:${NODE_PORT}/node/info`);
+                    if (info.ok) {
+                        const d = await info.json();
+                        node.name    = d.nodeName;
+                        node.prevID  = d.previousID;
+                        node.nextID  = d.nextID;
+                        node.online  = true;
+                    }
+                } catch (_) {}
+                nodes.push(node);
+            }
+            return nodes;
+        } catch (_) {
+            return null;
+        }
+    }
+
+    async function refresh() {
+        const nodes = await fetchNodes();
+        if (nodes === null) {
+            document.getElementById('ns-status').innerHTML = '<span class="status-dot dot-red"></span>offline';
+            document.getElementById('ns-count').textContent = '-';
+            allNodes = [];
+        } else {
+            document.getElementById('ns-status').innerHTML = '<span class="status-dot dot-green"></span>online';
+            document.getElementById('ns-count').textContent = nodes.length;
+            allNodes = nodes;
+        }
+        renderDashboard();
+        if (currentView === 'nodes') renderNodeCards();
+        if (currentView === 'files') updateNodeSelect();
+    }
+
+    function renderDashboard() {
+        document.getElementById('dashboard-nodes').innerHTML = allNodes.map(n => `
+            <tr>
+                <td>${n.name}</td>
+                <td>${n.id}</td>
+                <td>${n.ip}</td>
+                <td><span class="status-dot ${n.online ? 'dot-green' : 'dot-red'}"></span>${n.online ? 'online' : 'offline'}</td>
+            </tr>
+        `).join('');
+    }
+
+    function renderNodeCards() {
+        document.getElementById('nodes-grid').innerHTML = allNodes.map(n => `
+            <div class="node-card">
+                <h3>${n.name}</h3>
+                <div class="node-field"><span class="label">Node ID</span><span class="value">${n.id}</span></div>
+                <div class="node-field"><span class="label">IP</span><span class="value">${n.ip}</span></div>
+                <div class="node-field"><span class="label">Status</span><span class="value">
+                    <span class="status-dot ${n.online ? 'dot-green' : 'dot-red'}"></span>${n.online ? 'online' : 'offline'}
+                </span></div>
+                <div class="node-field"><span class="label">Prev ID</span><span class="value">${n.prevID}</span></div>
+                <div class="node-field"><span class="label">Next ID</span><span class="value">${n.nextID}</span></div>
+                <button class="btn btn-danger" onclick="removeNode(${n.id})">Remove</button>
+            </div>
+        `).join('');
+    }
+
+    function updateNodeSelect() {
+        const sel = document.getElementById('node-select');
+        const current = sel.value;
+        sel.innerHTML = allNodes.map(n =>
+            `<option value="${n.ip}">${n.name} (${n.ip})</option>`
+        ).join('');
+        if (current) sel.value = current;
+    }
+
+    async function loadFiles() {
+        const ip = document.getElementById('node-select').value;
+        if (!ip) return;
+
+        try {
+            const res = await fetch(`http://${ip}:${NODE_PORT}/node/files/local`);
+            const files = await res.json();
+            document.getElementById('local-files').innerHTML = files.length
+                ? files.map(f => `<tr><td>${f}</td></tr>`).join('')
+                : '<tr><td style="color:#666">No local files</td></tr>';
+        } catch (_) {
+            document.getElementById('local-files').innerHTML = '<tr><td style="color:#666">Unavailable</td></tr>';
+        }
+
+        try {
+            const res = await fetch(`http://${ip}:${NODE_PORT}/node/files/replicated`);
+            const files = await res.json();
+            document.getElementById('replicated-files').innerHTML = files.length
+                ? files.map(f => `<tr>
+                    <td>${f.fileName}</td>
+                    <td>${f.fileHash}</td>
+                    <td>${f.ownerId}</td>
+                    <td>${f.locked ? '🔒' : ''}</td>
+                  </tr>`).join('')
+                : '<tr><td colspan="4" style="color:#666">No replicated files</td></tr>';
+        } catch (_) {
+            document.getElementById('replicated-files').innerHTML = '<tr><td colspan="4" style="color:#666">Unavailable</td></tr>';
+        }
+    }
+
+    async function addNode() {
+        const name = document.getElementById('input-name').value.trim();
+        const ip   = document.getElementById('input-ip').value.trim();
+        if (!name || !ip) return alert('Fill in both fields.');
+        await fetch(`/naming/nodes?nodeName=${encodeURIComponent(name)}&ip=${encodeURIComponent(ip)}`, { method: 'POST' });
+        document.getElementById('input-name').value = '';
+        document.getElementById('input-ip').value = '';
+        refresh();
+    }
+
+    async function removeNode(id) {
+        if (!confirm('Remove node ' + id + '?')) return;
+        await fetch(`/naming/nodes/${id}`, { method: 'DELETE' });
+        refresh();
+    }
+
+    refresh();
+    setInterval(refresh, 5000);
+    setInterval(() => { if (currentView === 'files') loadFiles(); }, 5000);
+</script>
+
+</body>
+</html>
