@@ -54,16 +54,16 @@ public class BootstrapNode {
 
     private void handleNeighbourResponse(String msg) {
         if (!msg.startsWith("NEIGHBOUR:")) return;
+
         String[] parts = msg.split(":");
         if (parts.length != 3) return;
 
-        int senderID = Integer.parseInt(parts[1].trim());
-        int senderNeighbour = Integer.parseInt(parts[2].trim());
+        int previousID = Integer.parseInt(parts[1].trim());
+        int nextID = Integer.parseInt(parts[2].trim());
 
-        if (senderID < context.getCurrentID()) {
-            context.setPreviousID(senderID);
-        } else {
-            context.setNextID(senderID);
-        }
+        context.setPreviousID(previousID);
+        context.setNextID(nextID);
+
+        System.out.println("[Bootstrap] Buren ingesteld: previousID=" + previousID + " nextID=" + nextID);
     }
 }

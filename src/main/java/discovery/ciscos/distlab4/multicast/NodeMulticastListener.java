@@ -61,30 +61,73 @@ public class NodeMulticastListener {
     }
 
     private void handlePacket(DatagramPacket packet) {
-        String message = new String(packet.getData(), packet.getOffset(), packet.getLength(), StandardCharsets.UTF_8).trim();
+        String message = new String(
+                packet.getData(),
+                packet.getOffset(),
+                packet.getLength(),
+                StandardCharsets.UTF_8
+        ).trim();
+
         String[] parts = message.split(":", 3);
         if (parts.length != 3 || !BOOTSTRAP_PREFIX.equals(parts[0])) return;
 
         String newNodeName = parts[1].trim();
         String newNodeIp = parts[2].trim();
 
-        // eigen bericht negeren
         if (newNodeName.equals(context.getNodeName())) return;
 
         int newHash = hashService.hash(newNodeName);
+
         int current = context.getCurrentID();
         int next = context.getNextID();
         int previous = context.getPreviousID();
 
-        if (current < newHash && newHash < next) {
-            context.setNextID(newHash);
-            sendUnicast(packet.getAddress(), "NEIGHBOUR:" + current + ":" + next);
-            System.out.println("[Node] nextID updated to " + newHash);
-        } else if (previous < newHash && newHash < current) {
+        // Special case: er is maar 1 node op de ring
+        if (previous == current && next == current) {
             context.setPreviousID(newHash);
-            sendUnicast(packet.getAddress(), "NEIGHBOUR:" + current + ":" + previous);
+            context.setNextID(newHash);
+
+            sendUnicast(packet.getAddress(), "NEIGHBOUR:" + current + ":" + current);
+
+            System.out.println("[Node] Enige node op ring, previousID en nextID updated naar " + newHash);
+            return;
+        }
+
+        // Nieuwe node zit tussen deze node en zijn next => deze node wordt previous van nieuwe node
+        if (isBetween(current, newHash, next)) {
+            context.setNextID(newHash);
+
+            // vanuit perspectief van nieuwe node: previous = current, next = oude next
+            sendUnicast(packet.getAddress(), "NEIGHBOUR:" + current + ":" + next);
+
+            System.out.println("[Node] nextID updated to " + newHash);
+            return;
+        }
+
+        // Nieuwe node zit tussen previous en deze node => deze node wordt next van nieuwe node
+        if (isBetween(previous, newHash, current)) {
+            context.setPreviousID(newHash);
+
+            // vanuit perspectief van nieuwe node: previous = oude previous, next = current
+            sendUnicast(packet.getAddress(), "NEIGHBOUR:" + previous + ":" + current);
+
             System.out.println("[Node] previousID updated to " + newHash);
         }
+    }
+
+    private boolean isBetween(int start, int value, int end) {
+        if (start < end) {
+            return start < value && value < end;
+        }
+
+        // wrap-around, bv start=30000, end=1000
+        if (start > end) {
+            return value > start || value < end;
+        }
+
+        // start == end betekent normaal één node-ring;
+        // die case wordt hierboven apart behandeld
+        return false;
     }
 
     private void sendUnicast(InetAddress receiver, String message) {
