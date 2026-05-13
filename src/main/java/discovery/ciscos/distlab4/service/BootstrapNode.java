@@ -26,6 +26,7 @@ public class BootstrapNode {
         }
 
         if (nodesBefore < 1) {
+            System.out.println("[Bootstrap] TEST IF THE CODE IS UPDATED");
             System.out.println("[Bootstrap] Enige node op de ring, previousID = nextID = zichzelf.");
             return;
         }
