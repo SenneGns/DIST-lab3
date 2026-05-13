@@ -41,7 +41,7 @@ public class NodeApplication {
         FileLog fileLog = new FileLog(replicaFilesPath);
 
         NodeHttpServer httpServer = new NodeHttpServer(8081, context, replicaFilesPath,
-                NAMING_SERVER_URL, fileLog);
+                NAMING_SERVER_URL, fileLog, localFilesPath);
         httpServer.start();
 
         SyncAgent syncAgent = new SyncAgent();

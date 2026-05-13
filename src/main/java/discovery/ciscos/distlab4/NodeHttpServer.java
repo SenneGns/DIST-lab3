@@ -30,14 +30,16 @@ public class NodeHttpServer {
     private final FileLog fileLog;
 
     private SyncAgent syncAgent;
+    private final String localFilesPath;
 
     public NodeHttpServer(int port, NodeContext context, String replicaFilesPath,
-                          String namingServerUrl, FileLog fileLog) {
+                          String namingServerUrl, FileLog fileLog, String localFilesPath) {
         this.port = port;
         this.context = context;
         this.replicaFilesPath = replicaFilesPath;
         this.namingServerUrl = namingServerUrl;
         this.fileLog = fileLog;
+        this.localFilesPath = localFilesPath;
     }
 
     public void setSyncAgent(SyncAgent syncAgent) {
@@ -169,6 +171,53 @@ public class NodeHttpServer {
                 System.err.println("[NodeServer] Fout bij verwerken agent: " + e.getMessage());
                 sendResponse(exchange, 500, "Error: " + e.getMessage());
             }
+        });
+
+        // Geeft de configuratie van deze node terug als JSON (voor de GUI).
+        server.createContext("/node/info", exchange -> {
+            String json = "{\"nodeName\":\"" + context.getNodeName() + "\",\"ip\":\"" + context.getIp()
+                    + "\",\"currentID\":" + context.getCurrentID()
+                    + ",\"previousID\":" + context.getPreviousID()
+                    + ",\"nextID\":" + context.getNextID() + "}";
+            exchange.getResponseHeaders().set("Content-Type", "application/json");
+            exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+            sendResponse(exchange, 200, json);
+        });
+
+        // Geeft de lokale bestanden van deze node terug als JSON (voor de GUI).
+        server.createContext("/node/files/local", exchange -> {
+            File folder = new File(localFilesPath);
+            File[] files = folder.listFiles(File::isFile);
+            StringBuilder json = new StringBuilder("[");
+            if (files != null) {
+                for (int i = 0; i < files.length; i++) {
+                    if (i > 0) json.append(",");
+                    json.append("\"").append(files[i].getName()).append("\"");
+                }
+            }
+            json.append("]");
+            exchange.getResponseHeaders().set("Content-Type", "application/json");
+            exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+            sendResponse(exchange, 200, json.toString());
+        });
+
+        // Geeft de gerepliceerde bestanden van deze node terug als JSON (voor de GUI).
+        server.createContext("/node/files/replicated", exchange -> {
+            java.util.List<FileLog.LogEntry> entries = fileLog.getEntriesCopy();
+            StringBuilder json = new StringBuilder("[");
+            for (int i = 0; i < entries.size(); i++) {
+                if (i > 0) json.append(",");
+                FileLog.LogEntry e = entries.get(i);
+                json.append("{\"fileName\":\"").append(e.fileName)
+                        .append("\",\"fileHash\":").append(e.fileHash)
+                        .append(",\"downloadLocation\":\"").append(e.downloadLocation)
+                        .append("\",\"ownerId\":").append(e.ownerId)
+                        .append(",\"locked\":").append(e.locked).append("}");
+            }
+            json.append("]");
+            exchange.getResponseHeaders().set("Content-Type", "application/json");
+            exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+            sendResponse(exchange, 200, json.toString());
         });
 
         server.setExecutor(Executors.newCachedThreadPool());
