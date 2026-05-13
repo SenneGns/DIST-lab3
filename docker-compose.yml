@@ -1,0 +1,72 @@
+networks:
+  dist-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+
+services:
+  naming-server:
+    build: .
+    container_name: naming-server
+    networks:
+      dist-net:
+        ipv4_address: 172.20.0.2
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/naming/nodes"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+
+  node-a:
+    build: .
+    container_name: node-a
+    networks:
+      dist-net:
+        ipv4_address: 172.20.0.10
+    environment:
+      - NAMING_SERVER_URL=http://naming-server:8080
+    entrypoint: ["sh", "-c", "sleep 5 && java -Djava.net.preferIPv4Stack=true -Dloader.main=discovery.ciscos.distlab4.NodeApplication -jar /app/app.jar Alice 172.20.0.10 /data/nodeA"]
+    volumes:
+      - nodeA-data:/data/nodeA
+    depends_on:
+      naming-server:
+        condition: service_healthy
+
+  node-b:
+    build: .
+    container_name: node-b
+    networks:
+      dist-net:
+        ipv4_address: 172.20.0.11
+    environment:
+      - NAMING_SERVER_URL=http://naming-server:8080
+    entrypoint: ["sh", "-c", "sleep 10 && java -Djava.net.preferIPv4Stack=true -Dloader.main=discovery.ciscos.distlab4.NodeApplication -jar /app/app.jar Bob 172.20.0.11 /data/nodeB"]
+    volumes:
+      - nodeB-data:/data/nodeB
+    depends_on:
+      naming-server:
+        condition: service_healthy
+
+  node-c:
+    build: .
+    container_name: node-c
+    networks:
+      dist-net:
+        ipv4_address: 172.20.0.12
+    environment:
+      - NAMING_SERVER_URL=http://naming-server:8080
+    entrypoint: ["sh", "-c", "sleep 15 && java -Djava.net.preferIPv4Stack=true -Dloader.main=discovery.ciscos.distlab4.NodeApplication -jar /app/app.jar LucasG 172.20.0.12 /data/nodeC"]
+    volumes:
+      - nodeC-data:/data/nodeC
+    depends_on:
+      naming-server:
+        condition: service_healthy
+
+volumes:
+  nodeA-data:
+  nodeB-data:
+  nodeC-data:

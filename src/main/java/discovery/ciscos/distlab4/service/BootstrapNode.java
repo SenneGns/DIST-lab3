@@ -17,9 +17,8 @@ public class BootstrapNode {
     }
 
     public void bootstrap() {
-        discovery.sendBootstrap(context.getNodeName(), context.getIp());
-
-        Integer nodesBefore = discovery.awaitBootstrapAck(Duration.ofSeconds(5));
+        Integer nodesBefore = discovery.sendBootstrapAndAwaitAck(
+    context.getNodeName(), context.getIp(), Duration.ofSeconds(5));
 
         if (nodesBefore == null) {
             System.out.println("[Bootstrap] Geen ACK ontvangen, veronderstel enige node.");
@@ -37,7 +36,7 @@ public class BootstrapNode {
 
     private void awaitNeighbourResponses() {
         long deadline = System.currentTimeMillis() + 5000;
-        try (DatagramSocket socket = new DatagramSocket(DiscoveryService.ACK_PORT)) {
+        try (DatagramSocket socket = new DatagramSocket(DiscoveryService.NEIGHBOUR_PORT)) {
             socket.setSoTimeout(5000);
             while (System.currentTimeMillis() < deadline) {
                 byte[] buf = new byte[256];

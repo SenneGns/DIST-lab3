@@ -9,12 +9,14 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.nio.charset.StandardCharsets;
+import java.net.NetworkInterface;
+import java.net.InetSocketAddress;
 
 public class NodeMulticastListener {
 
     private static final String MULTICAST_GROUP = "230.0.0.1";
     private static final int MULTICAST_PORT = 4446;
-    private static final int UNICAST_REPLY_PORT = 4447;
+    private static final int UNICAST_REPLY_PORT = 4448;
     private static final String BOOTSTRAP_PREFIX = "BOOTSTRAP";
 
     private final NodeContext context;
@@ -32,21 +34,31 @@ public class NodeMulticastListener {
     }
 
     private void listen() {
-        try (MulticastSocket socket = new MulticastSocket(MULTICAST_PORT)) {
-            InetAddress group = InetAddress.getByName(MULTICAST_GROUP);
-            socket.setReuseAddress(true);
+    try (MulticastSocket socket = new MulticastSocket(MULTICAST_PORT)) {
+        InetAddress group = InetAddress.getByName(MULTICAST_GROUP);
+        socket.setReuseAddress(true);
+        
+        // Expliciet eth0 opgeven zodat Docker de juiste interface gebruikt
+        NetworkInterface ni = NetworkInterface.getByName("eth0");
+        if (ni != null) {
+            socket.joinGroup(new InetSocketAddress(group, MULTICAST_PORT), ni);
+            System.out.println("[Node] Multicast joined op eth0");
+        } else {
             socket.joinGroup(group);
-            System.out.println("[Node] Multicast listener actief");
-            while (true) {
-                byte[] buffer = new byte[512];
-                DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-                socket.receive(packet);
-                handlePacket(packet);
-            }
-        } catch (IOException e) {
-            System.err.println("[Node] Multicast listener fout: " + e.getMessage());
+            System.out.println("[Node] Multicast joined op standaard interface");
         }
+        
+        System.out.println("[Node] Multicast listener actief");
+        while (true) {
+            byte[] buffer = new byte[512];
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+            socket.receive(packet);
+            handlePacket(packet);
+        }
+    } catch (IOException e) {
+        System.err.println("[Node] Multicast listener fout: " + e.getMessage());
     }
+}
 
     private void handlePacket(DatagramPacket packet) {
         String message = new String(packet.getData(), packet.getOffset(), packet.getLength(), StandardCharsets.UTF_8).trim();
