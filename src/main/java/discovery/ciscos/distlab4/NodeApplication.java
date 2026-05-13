@@ -33,12 +33,8 @@ public class NodeApplication {
 
         NodeContext context = new NodeContext(nodeName, ip, currentID);
 
-        NodeMulticastListener listener = new NodeMulticastListener(context);
-        listener.start();
-
-        BootstrapNode bootstrap = new BootstrapNode(context);
-        bootstrap.bootstrap();
-
+        // HTTP server eerst starten zodat /node/ping al bereikbaar is
+        // voordat andere nodes onze bootstrap multicast ontvangen en ons beginnen pingen.
         FileLog fileLog = new FileLog(localFilesPath);
         NodeHttpServer nodeHttpServer = new NodeHttpServer(8080, context, localFilesPath, NAMING_SERVER_URL, fileLog, localFilesPath);
         try {
@@ -53,6 +49,12 @@ public class NodeApplication {
         Thread syncThread = new Thread(syncAgent, "sync-agent");
         syncThread.setDaemon(true);
         syncThread.start();
+
+        NodeMulticastListener listener = new NodeMulticastListener(context);
+        listener.start();
+
+        BootstrapNode bootstrap = new BootstrapNode(context);
+        bootstrap.bootstrap();
 
         FileTransfer.startReceiver(localFilesPath);
 
