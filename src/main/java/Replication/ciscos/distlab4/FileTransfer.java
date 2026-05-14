@@ -1,5 +1,7 @@
 package Replication.ciscos.distlab4;
 
+import namingserver.ciscos.distlab3.service.HashService;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -7,6 +9,8 @@ import java.net.Socket;
 public class FileTransfer {
 
     private static final int PORT = 5000;
+    private static FileLog fileLog;
+    private static final HashService hashService = new HashService();
 
     // Makes a TCP connection for sending files, and sends the files
     public static void sendFile(String ip, File file) {
@@ -30,7 +34,8 @@ public class FileTransfer {
     }
 
     // waits for incoming files and starts receiveFile for each file.
-    public static void startReceiver(String saveDirectory) {
+    public static void startReceiver(String saveDirectory, FileLog log) {
+        fileLog = log;
         Thread t = new Thread(() -> {
             try (ServerSocket serverSocket = new ServerSocket(PORT)) {
                 System.out.println("[FileTransfer] Ontvanger actief op poort " + PORT);
@@ -52,6 +57,7 @@ public class FileTransfer {
             DataInputStream dis = new DataInputStream(in);
             String fileName = dis.readUTF();
             long fileSize = dis.readLong();
+            String senderIp = socket.getInetAddress().getHostAddress();
 
             File outFile = new File(saveDirectory, fileName);
             try (FileOutputStream fos = new FileOutputStream(outFile)) {
@@ -64,6 +70,11 @@ public class FileTransfer {
                 }
             }
             System.out.println("[FileTransfer] Bestand ontvangen: " + fileName);
+
+            if (fileLog != null) {
+                int fileHash = hashService.hash(fileName);
+                fileLog.addEntry(fileName, fileHash, senderIp);
+            }
         } catch (Exception e) {
             System.err.println("[FileTransfer] Fout bij verwerken ontvangen bestand: " + e.getMessage());
         }

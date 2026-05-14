@@ -59,7 +59,7 @@ public class NodeApplication {
         BootstrapNode bootstrap = new BootstrapNode(context);
         bootstrap.bootstrap();
 
-        FileTransfer.startReceiver(replicaFilesPath);
+        FileTransfer.startReceiver(replicaFilesPath, fileLog);
 
         ReplicationService replication = new ReplicationService(NAMING_SERVER_URL, localFilesPath);
         replication.replicateAllFiles();
