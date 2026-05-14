@@ -35,8 +35,11 @@ public class NodeApplication {
 
         // HTTP server eerst starten zodat /node/ping al bereikbaar is
         // voordat andere nodes onze bootstrap multicast ontvangen en ons beginnen pingen.
-        FileLog fileLog = new FileLog(localFilesPath);
-        NodeHttpServer nodeHttpServer = new NodeHttpServer(8080, context, localFilesPath, NAMING_SERVER_URL, fileLog, localFilesPath);
+        String replicaFilesPath = localFilesPath + "/replicas";
+        new java.io.File(replicaFilesPath).mkdirs();
+
+        FileLog fileLog = new FileLog(replicaFilesPath);
+        NodeHttpServer nodeHttpServer = new NodeHttpServer(8080, context, replicaFilesPath, NAMING_SERVER_URL, fileLog, localFilesPath);
         try {
             nodeHttpServer.start();
         } catch (java.io.IOException e) {
@@ -56,15 +59,15 @@ public class NodeApplication {
         BootstrapNode bootstrap = new BootstrapNode(context);
         bootstrap.bootstrap();
 
-        FileTransfer.startReceiver(localFilesPath);
+        FileTransfer.startReceiver(replicaFilesPath);
 
-        ReplicationService replication = new ReplicationService(NAMING_SERVER_URL, localFilesPath, ip);
+        ReplicationService replication = new ReplicationService(NAMING_SERVER_URL, localFilesPath);
         replication.replicateAllFiles();
 
         FileWatcher fileWatcher = new FileWatcher(localFilesPath, replication, NAMING_SERVER_URL);
         fileWatcher.start();
 
-        ShutdownHook shutdownHook = new ShutdownHook(NAMING_SERVER_URL, context, fileLog, localFilesPath);
+        ShutdownHook shutdownHook = new ShutdownHook(NAMING_SERVER_URL, context, fileLog, replicaFilesPath);
         shutdownHook.register();
 
         FailureDetector failureDetector = new FailureDetector(NAMING_SERVER_URL, context);

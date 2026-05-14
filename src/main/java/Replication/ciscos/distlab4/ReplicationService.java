@@ -11,13 +11,11 @@ public class ReplicationService {
 
     private final String namingServerUrl;
     private final String localFilesPath;
-    private final String localIp;
     private final HashService hashService = new HashService();
 
-    public ReplicationService(String namingServerUrl, String localFilesPath, String localIp) {
+    public ReplicationService(String namingServerUrl, String localFilesPath) {
         this.namingServerUrl = namingServerUrl.endsWith("/") ? namingServerUrl.substring(0, namingServerUrl.length() - 1) : namingServerUrl;
         this.localFilesPath = localFilesPath;
-        this.localIp = localIp;
     }
 
     // goes through all local files and replicates them one by one.
@@ -41,10 +39,6 @@ public class ReplicationService {
             String ownerIp = getOwnerIp(file.getName());
             if (ownerIp == null) {
                 System.out.println("[Replication] Geen owner gevonden voor: " + file.getName());
-                return;
-            }
-            if (ownerIp.equals(localIp)) {
-                System.out.println("[Replication] " + file.getName() + " -> deze node is zelf de owner, geen replicatie nodig.");
                 return;
             }
             FileTransfer.sendFile(ownerIp, file);
