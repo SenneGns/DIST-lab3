@@ -48,7 +48,7 @@ public class ShutdownHook {
 
             // Edge case: previous node already has this file locally -> fall back one more step
             if (nodeHasFile(previousIp, entry.fileName)) {
-                System.out.println("[Shutdown] " + entry.fileName + " al aanwezig op previousNode -> doorsturen naar prev-of-prev");
+                System.err.println("[Shutdown] " + entry.fileName + " al aanwezig op previousNode -> doorsturen naar prev-of-prev");
                 int prevOfPrevId = getPreviousIdOfNode(previousIp);
                 if (prevOfPrevId != -1) {
                     String prevOfPrevIp = getIpFromNamingServer(prevOfPrevId);
@@ -57,7 +57,7 @@ public class ShutdownHook {
             }
 
             FileTransfer.sendFile(targetIp, file);
-            System.out.println("[Shutdown] Replica overgedragen naar " + targetIp + ": " + entry.fileName);
+            System.err.println("[Shutdown] Replica overgedragen naar " + targetIp + ": " + entry.fileName);
         }
     }
 
@@ -71,7 +71,7 @@ public class ShutdownHook {
             conn.setReadTimeout(2000);
             return conn.getResponseCode() == 200;
         } catch (Exception e) {
-            System.out.println("[Shutdown] Kon hasFile niet controleren op " + ip + ": " + e.getMessage());
+            System.err.println("[Shutdown] Kon hasFile niet controleren op " + ip + ": " + e.getMessage());
             return false;
         }
     }
@@ -92,7 +92,7 @@ public class ShutdownHook {
             if (end == -1) end = response.indexOf("}", start);
             return Integer.parseInt(response.substring(start, end).trim());
         } catch (Exception e) {
-            System.out.println("[Shutdown] Kon previousID niet ophalen van " + ip + ": " + e.getMessage());
+            System.err.println("[Shutdown] Kon previousID niet ophalen van " + ip + ": " + e.getMessage());
             return -1;
         }
     }
@@ -107,9 +107,9 @@ public class ShutdownHook {
                 String url = "http://" + entry.downloadLocation + ":8080/node/localFileTerminating"
                         + "?filename=" + encoded + "&sourceIp=" + sourceEncoded;
                 sendPost(url);
-                System.out.println("[Shutdown] Owner genotificeerd: " + entry.downloadLocation + " voor " + entry.fileName);
+                System.err.println("[Shutdown] Owner genotificeerd: " + entry.downloadLocation + " voor " + entry.fileName);
             } catch (Exception e) {
-                System.out.println("[Shutdown] Fout bij notificeren owner: " + e.getMessage());
+                System.err.println("[Shutdown] Fout bij notificeren owner: " + e.getMessage());
             }
         }
     }
@@ -121,9 +121,9 @@ public class ShutdownHook {
             if (previousIp == null) return;
             String url = "http://" + previousIp + ":8080/node/setNext?nextID=" + context.getNextID();
             sendPost(url);
-            System.out.println("[Shutdown] PreviousNode genotificeerd op " + previousIp);
+            System.err.println("[Shutdown] PreviousNode genotificeerd op " + previousIp);
         } catch (Exception e) {
-            System.out.println("[Shutdown] Fout bij notificeren previousNode: " + e.getMessage());
+            System.err.println("[Shutdown] Fout bij notificeren previousNode: " + e.getMessage());
         }
     }
 
@@ -134,9 +134,9 @@ public class ShutdownHook {
             if (nextIp == null) return;
             String url = "http://" + nextIp + ":8080/node/setPrevious?previousID=" + context.getPreviousID();
             sendPost(url);
-            System.out.println("[Shutdown] NextNode genotificeerd op " + nextIp);
+            System.err.println("[Shutdown] NextNode genotificeerd op " + nextIp);
         } catch (Exception e) {
-            System.out.println("[Shutdown] Fout bij notificeren nextNode: " + e.getMessage());
+            System.err.println("[Shutdown] Fout bij notificeren nextNode: " + e.getMessage());
         }
     }
 
@@ -157,7 +157,7 @@ public class ShutdownHook {
             int end = response.indexOf("\"", start);
             return response.substring(start, end);
         } catch (Exception e) {
-            System.out.println("[Shutdown] Fout bij ophalen IP van naming server: " + e.getMessage());
+            System.err.println("[Shutdown] Fout bij ophalen IP van naming server: " + e.getMessage());
             return null;
         }
     }
@@ -167,9 +167,9 @@ public class ShutdownHook {
             String urlStr = namingServerUrl + "/naming/nodes/leave?nodeName=" +
                     URLEncoder.encode(context.getNodeName(), StandardCharsets.UTF_8);
             sendPost(urlStr);
-            System.out.println("[Shutdown] Naming server verlaten.");
+            System.err.println("[Shutdown] Naming server verlaten.");
         } catch (Exception e) {
-            System.out.println("[Shutdown] Fout bij verlaten naming server: " + e.getMessage());
+            System.err.println("[Shutdown] Fout bij verlaten naming server: " + e.getMessage());
         }
     }
 
@@ -181,6 +181,6 @@ public class ShutdownHook {
         conn.setReadTimeout(2000);
         conn.setDoOutput(true);
         conn.getOutputStream().write(new byte[0]);
-        System.out.println("[Shutdown] POST " + urlStr + " -> " + conn.getResponseCode());
+        System.err.println("[Shutdown] POST " + urlStr + " -> " + conn.getResponseCode());
     }
 }
