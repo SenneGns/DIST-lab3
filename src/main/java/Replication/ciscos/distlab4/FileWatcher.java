@@ -25,7 +25,7 @@ public class FileWatcher {
         File[] initial = folder.listFiles();
         if (initial != null) {
             for (File f : initial) {
-                if (f.isFile()) knownFiles.add(f.getName());
+                if (f.isFile()) knownFiles.add(f.getName()); //opslaan van de files
             }
         }
         Thread t = new Thread(this::watch, "file-watcher");
