@@ -42,10 +42,58 @@ public class ShutdownHook {
         List<FileLog.LogEntry> entries = fileLog.getEntriesCopy();
         for (FileLog.LogEntry entry : entries) {
             File file = new File(replicaFilesPath, entry.fileName);
-            if (file.exists()) {
-                FileTransfer.sendFile(previousIp, file);
-                System.out.println("[Shutdown] Replica overgedragen naar " + previousIp + ": " + entry.fileName);
+            if (!file.exists()) continue;
+
+            String targetIp = previousIp;
+
+            // Edge case: previous node already has this file locally -> fall back one more step
+            if (nodeHasFile(previousIp, entry.fileName)) {
+                System.out.println("[Shutdown] " + entry.fileName + " al aanwezig op previousNode -> doorsturen naar prev-of-prev");
+                int prevOfPrevId = getPreviousIdOfNode(previousIp);
+                if (prevOfPrevId != -1) {
+                    String prevOfPrevIp = getIpFromNamingServer(prevOfPrevId);
+                    if (prevOfPrevIp != null) targetIp = prevOfPrevIp;
+                }
             }
+
+            FileTransfer.sendFile(targetIp, file);
+            System.out.println("[Shutdown] Replica overgedragen naar " + targetIp + ": " + entry.fileName);
+        }
+    }
+
+    private boolean nodeHasFile(String ip, String fileName) {
+        try {
+            String urlStr = "http://" + ip + ":8080/node/hasFile?filename="
+                    + URLEncoder.encode(fileName, StandardCharsets.UTF_8);
+            HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(2000);
+            conn.setReadTimeout(2000);
+            return conn.getResponseCode() == 200;
+        } catch (Exception e) {
+            System.out.println("[Shutdown] Kon hasFile niet controleren op " + ip + ": " + e.getMessage());
+            return false;
+        }
+    }
+
+    private int getPreviousIdOfNode(String ip) {
+        try {
+            String urlStr = "http://" + ip + ":8080/node/info";
+            HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(2000);
+            conn.setReadTimeout(2000);
+            String response = new String(conn.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            String search = "\"previousID\":";
+            int idx = response.indexOf(search);
+            if (idx == -1) return -1;
+            int start = idx + search.length();
+            int end = response.indexOf(",", start);
+            if (end == -1) end = response.indexOf("}", start);
+            return Integer.parseInt(response.substring(start, end).trim());
+        } catch (Exception e) {
+            System.out.println("[Shutdown] Kon previousID niet ophalen van " + ip + ": " + e.getMessage());
+            return -1;
         }
     }
 

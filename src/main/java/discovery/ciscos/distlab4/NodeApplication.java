@@ -58,7 +58,7 @@ public class NodeApplication {
 
         FileTransfer.startReceiver(localFilesPath);
 
-        ReplicationService replication = new ReplicationService(NAMING_SERVER_URL, localFilesPath);
+        ReplicationService replication = new ReplicationService(NAMING_SERVER_URL, localFilesPath, ip);
         replication.replicateAllFiles();
 
         FileWatcher fileWatcher = new FileWatcher(localFilesPath, replication, NAMING_SERVER_URL);
