@@ -63,7 +63,7 @@ public class FileLog {
 
     public synchronized void addEntry(String fileName, int fileHash, String downloadLocation) {
         for (LogEntry entry : entries) {
-            if (entry.fileName.equals(fileName) && entry.downloadLocation.equals(downloadLocation)) {
+            if (entry.fileName.equals(fileName)) {
                 return;
             }
         }
@@ -107,7 +107,15 @@ public class FileLog {
     private void load() {
         try {
             if (logFile.exists()) {
-                entries = mapper.readValue(logFile, new TypeReference<>() {});
+                List<LogEntry> loaded = mapper.readValue(logFile, new TypeReference<>() {});
+                java.util.Map<String, LogEntry> deduped = new java.util.LinkedHashMap<>();
+                for (LogEntry e : loaded) {
+                    if (!deduped.containsKey(e.fileName) || deduped.get(e.fileName).ownerId == -1) {
+                        deduped.put(e.fileName, e);
+                    }
+                }
+                entries = new ArrayList<>(deduped.values());
+                save();
             } else {
                 entries = new ArrayList<>();
             }
