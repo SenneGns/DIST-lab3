@@ -115,7 +115,7 @@ public class SyncAgent implements Runnable, Serializable {
     private Map<String, Boolean> getNextNodeSyncList(String nextIp) {
         Map<String, Boolean> result = new HashMap<>();
         try {
-            URL url = new URL("http://" + nextIp + ":8081/agent/syncList");
+            URL url = new URL("http://" + nextIp + ":8080/agent/syncList");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setConnectTimeout(2000);
