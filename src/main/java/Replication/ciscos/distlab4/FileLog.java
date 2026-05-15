@@ -62,6 +62,11 @@ public class FileLog {
     }
 
     public synchronized void addEntry(String fileName, int fileHash, String downloadLocation) {
+        for (LogEntry entry : entries) {
+            if (entry.fileName.equals(fileName) && entry.downloadLocation.equals(downloadLocation)) {
+                return;
+            }
+        }
         entries.add(new LogEntry(fileName, fileHash, downloadLocation));
         save();
         System.out.println("[FileLog] Entry toegevoegd: " + fileName + " van " + downloadLocation);
