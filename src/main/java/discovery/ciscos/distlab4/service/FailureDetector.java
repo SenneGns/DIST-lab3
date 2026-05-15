@@ -58,26 +58,21 @@ public class FailureDetector {
         // haal buren op van de gevallen node via naming server
         int newPrevious = getNeighbour(failedNodeId, "previous");
         int newNext = getNeighbour(failedNodeId, "next");
-
         if (newPrevious == -1 || newNext == -1) {
             System.out.println("[Failure] Kon buren niet ophalen van naming server.");
             return;
         }
-
         // update buren
         updateNeighbour(newPrevious, "setNext", newNext);
         updateNeighbour(newNext, "setPrevious", newPrevious);
-
         // dispatch FailureAgent voordat gevallen node uit naming server wordt verwijderd
         String newPreviousIp = getIpFromNamingServer(newPrevious);
         if (newPreviousIp != null) {
             FailureAgent agent = new FailureAgent(failedNodeId, context.getCurrentID(), newPrevious, newPreviousIp);
             agent.forwardToNode(context.getIp());
         }
-
         // verwijder gevallen node uit naming server
         removeFromNamingServer(failedNodeId);
-
         // update eigen context indien nodig
         if (context.getPreviousID() == failedNodeId) context.setPreviousID(newPrevious);
         if (context.getNextID() == failedNodeId) context.setNextID(newNext);

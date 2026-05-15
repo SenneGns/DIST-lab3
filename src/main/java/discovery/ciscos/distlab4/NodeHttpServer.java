@@ -106,6 +106,44 @@ public class NodeHttpServer {
             sendResponse(exchange, f.exists() ? 200 : 404, f.exists() ? "YES" : "NO");
         });
 
+        // Vergrendelt een bestand op deze node; de SyncAgent verspreidt dit via OR-logica door de ring.
+        server.createContext("/node/lock", exchange -> {
+            if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+                sendResponse(exchange, 405, "Method Not Allowed");
+                return;
+            }
+            Map<String, String> params = parseQuery(exchange.getRequestURI().getQuery());
+            String filename = params.get("filename");
+            if (filename == null) {
+                sendResponse(exchange, 400, "Missing filename");
+                return;
+            }
+            fileLog.setLocked(filename, true);
+            if (syncAgent != null) syncAgent.setFileLocked(filename, true);
+            System.out.println("[NodeServer] Bestand vergrendeld: " + filename);
+            sendResponse(exchange, 200, "OK");
+        });
+
+        // Ontgrendelt een bestand lokaal en broadcast naar alle andere nodes (broadcast=true standaard).
+        server.createContext("/node/unlock", exchange -> {
+            if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+                sendResponse(exchange, 405, "Method Not Allowed");
+                return;
+            }
+            Map<String, String> params = parseQuery(exchange.getRequestURI().getQuery());
+            String filename = params.get("filename");
+            boolean broadcast = !"false".equals(params.get("broadcast"));
+            if (filename == null) {
+                sendResponse(exchange, 400, "Missing filename");
+                return;
+            }
+            fileLog.setLocked(filename, false);
+            if (syncAgent != null) syncAgent.setFileLocked(filename, false);
+            System.out.println("[NodeServer] Bestand ontgrendeld: " + filename);
+            if (broadcast) broadcastUnlock(filename);
+            sendResponse(exchange, 200, "OK");
+        });
+
         // Geeft de agentlijst van de lokale SyncAgent terug als JSON.
         server.createContext("/agent/syncList", exchange -> {
             if (!"GET".equalsIgnoreCase(exchange.getRequestMethod())) {
@@ -223,6 +261,40 @@ public class NodeHttpServer {
         server.setExecutor(Executors.newCachedThreadPool());
         server.start();
         System.out.println("[NodeServer] HTTP server actief op poort " + port);
+    }
+
+    private void broadcastUnlock(String filename) {
+        try {
+            String urlStr = namingServerUrl + "/naming/nodes";
+            HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(2000);
+            conn.setReadTimeout(2000);
+            String response = new String(conn.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            String stripped = response.replace("{", "").replace("}", "").replace("\"", "").trim();
+            if (stripped.isEmpty()) return;
+            for (String entry : stripped.split(",")) {
+                String[] kv = entry.split(":", 2);
+                if (kv.length < 2) continue;
+                String ip = kv[1].trim();
+                if (ip.equals(context.getIp())) continue;
+                try {
+                    String encoded = java.net.URLEncoder.encode(filename, StandardCharsets.UTF_8);
+                    String target = "http://" + ip + ":" + port + "/node/unlock?filename=" + encoded + "&broadcast=false";
+                    HttpURLConnection uc = (HttpURLConnection) new URL(target).openConnection();
+                    uc.setRequestMethod("POST");
+                    uc.setConnectTimeout(2000);
+                    uc.setReadTimeout(2000);
+                    uc.setDoOutput(true);
+                    uc.getOutputStream().write(new byte[0]);
+                    uc.getResponseCode();
+                } catch (Exception e) {
+                    System.err.println("[NodeServer] Unlock broadcast mislukt naar " + ip + ": " + e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("[NodeServer] Fout bij ophalen nodes voor unlock broadcast: " + e.getMessage());
+        }
     }
 
     private void handleLocalFileTerminating(String filename, String sourceIp) {

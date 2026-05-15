@@ -39,9 +39,7 @@ public class SyncAgent implements Runnable, Serializable {
             System.err.println("[SyncAgent] Geen context gekoppeld.");
             return;
         }
-
         System.out.println("[SyncAgent] gestart op node " + currentNodeId);
-
         while (true) {
             try {
                 syncOnce();
@@ -67,9 +65,6 @@ public class SyncAgent implements Runnable, Serializable {
             }
             if (entry.locked) {
                 agentFileList.put(entry.fileName, true);
-            } else if (agentFileList.getOrDefault(entry.fileName, false)) {
-                // log zegt ontgrendeld maar agentlijst zegt nog vergrendeld → ontgrendelen
-                agentFileList.put(entry.fileName, false);
             }
         }
 
@@ -120,7 +115,7 @@ public class SyncAgent implements Runnable, Serializable {
     private Map<String, Boolean> getNextNodeSyncList(String nextIp) {
         Map<String, Boolean> result = new HashMap<>();
         try {
-            URL url = new URL("http://" + nextIp + ":8080/agent/syncList");
+            URL url = new URL("http://" + nextIp + ":8081/agent/syncList");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setConnectTimeout(2000);
@@ -139,6 +134,10 @@ public class SyncAgent implements Runnable, Serializable {
             // volgende node tijdelijk niet bereikbaar
         }
         return result;
+    }
+
+    public void setFileLocked(String fileName, boolean locked) {
+        agentFileList.put(fileName, locked);
     }
 
     public Map<String, Boolean> getAgentFileList() {

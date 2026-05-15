@@ -22,8 +22,6 @@ public class NodeApplication {
             return;
         }
 
-
-
         String nodeName = args[0];
         String ip = args[1];
         String localFilesPath = args[2];
