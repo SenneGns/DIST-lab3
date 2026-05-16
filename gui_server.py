@@ -199,6 +199,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._remove_node(data)
         elif path == "/api/node/restart":
             self._restart_node(data)
+        elif path == "/api/node/delete":
+            self._delete_node(data)
         elif path.startswith("/api/node/") and path.endswith("/lock"):
             ip = path[len("/api/node/"):-len("/lock")]
             self._node_lock_action(ip, data.get("filename", ""), "lock")
@@ -348,6 +350,23 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 ["docker", "exec", "-i", container, "sh", "-c",
                  f"cat > '{data_path}/{filename}'"],
                 input=content, capture_output=True, text=True, timeout=10
+            )
+            if r.returncode == 0:
+                self.send_json(200, {"ok": True})
+            else:
+                self.send_json(500, {"error": r.stderr.strip()})
+        except Exception as e:
+            self.send_json(500, {"error": str(e)})
+
+    def _delete_node(self, data):
+        container = data.get("containerName", "").strip()
+        if not container:
+            self.send_json(400, {"error": "containerName is verplicht"})
+            return
+        try:
+            r = subprocess.run(
+                ["docker", "rm", "-f", container],
+                capture_output=True, text=True, timeout=30
             )
             if r.returncode == 0:
                 self.send_json(200, {"ok": True})

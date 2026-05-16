@@ -744,6 +744,15 @@
         } catch (e) { showToast('Error: ' + e.message); }
     }
 
+    async function deleteNode(containerName) {
+        if (!confirm(`Container "${containerName}" permanent verwijderen?`)) return;
+        try {
+            await apiPost('/api/node/delete', { containerName });
+            showToast(`"${containerName}" verwijderd`);
+            loadContainersTable();
+        } catch (e) { showToast('Error: ' + e.message); }
+    }
+
     async function restartNode(containerName) {
         try {
             await apiPost('/api/node/restart', { containerName });
@@ -761,9 +770,11 @@
                 const isNode = c.name.startsWith('node-');
                 let btn = '';
                 if (isNode && running)
-                    btn = `<button class="btn btn-danger btn-sm" onclick="stopNode('${esc(c.name)}')">Stop</button>`;
+                    btn = `<button class="btn btn-danger btn-sm" onclick="stopNode('${esc(c.name)}')">Stop</button>
+                           <button class="btn btn-sm" style="background:#7f1d1d;color:#fca5a5;margin-left:4px" onclick="deleteNode('${esc(c.name)}')">Delete</button>`;
                 else if (isNode && !running)
-                    btn = `<button class="btn btn-success btn-sm" onclick="restartNode('${esc(c.name)}')">Start</button>`;
+                    btn = `<button class="btn btn-success btn-sm" onclick="restartNode('${esc(c.name)}')">Start</button>
+                           <button class="btn btn-sm" style="background:#7f1d1d;color:#fca5a5;margin-left:4px" onclick="deleteNode('${esc(c.name)}')">Delete</button>`;
                 return `<tr>
                     <td><span class="status-dot ${running ? 'dot-green' : 'dot-red'}"></span>${esc(c.name)}</td>
                     <td style="color:${running ? '#4caf50' : '#888'};font-size:13px">${esc(c.status)}</td>
