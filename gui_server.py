@@ -339,21 +339,20 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if r.returncode != 0:
                 self.send_json(500, {"error": r.stderr.strip()})
                 return
-            # Notify all other nodes so they clean up their replicas
-            if source_ip:
-                enc_file = urllib.parse.quote(filename)
-                enc_ip   = urllib.parse.quote(source_ip)
-                for node in build_node_list():
-                    if node.get("ip") == source_ip:
-                        continue
-                    try:
-                        url = (f"http://{node['ip']}:{NODE_PORT}"
-                               f"/node/localFileTerminating"
-                               f"?filename={enc_file}&sourceIp={enc_ip}")
-                        req = urllib.request.Request(url, data=b"", method="POST")
-                        urllib.request.urlopen(req, timeout=2)
-                    except Exception:
-                        pass
+            # Delete replica on every other node directly
+            enc_file = urllib.parse.quote(filename)
+            raw = http_get(f"{NAMING_SERVER}/naming/nodes")
+            if raw:
+                try:
+                    for node_id, ip in json.loads(raw).items():
+                        if ip == source_ip:
+                            continue
+                        http_get(
+                            f"http://{ip}:{NODE_PORT}/node/deleteReplica?filename={enc_file}",
+                            timeout=2
+                        )
+                except Exception:
+                    pass
             self.send_json(200, {"ok": True})
         except Exception as e:
             self.send_json(500, {"error": str(e)})
