@@ -323,8 +323,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.send_json(500, {"error": str(e)})
 
     def _delete_file(self, data):
+        import urllib.parse
         container = data.get("containerName", "").strip()
         filename = data.get("filename", "").strip()
+        source_ip = data.get("ip", "").strip()
         if not container or not filename:
             self.send_json(400, {"error": "containerName and filename required"})
             return
@@ -334,10 +336,25 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 ["docker", "exec", container, "rm", f"{data_path}/{filename}"],
                 capture_output=True, text=True, timeout=5
             )
-            if r.returncode == 0:
-                self.send_json(200, {"ok": True})
-            else:
+            if r.returncode != 0:
                 self.send_json(500, {"error": r.stderr.strip()})
+                return
+            # Notify all other nodes so they clean up their replicas
+            if source_ip:
+                enc_file = urllib.parse.quote(filename)
+                enc_ip   = urllib.parse.quote(source_ip)
+                for node in build_node_list():
+                    if node.get("ip") == source_ip:
+                        continue
+                    try:
+                        url = (f"http://{node['ip']}:{NODE_PORT}"
+                               f"/node/localFileTerminating"
+                               f"?filename={enc_file}&sourceIp={enc_ip}")
+                        req = urllib.request.Request(url, data=b"", method="POST")
+                        urllib.request.urlopen(req, timeout=2)
+                    except Exception:
+                        pass
+            self.send_json(200, {"ok": True})
         except Exception as e:
             self.send_json(500, {"error": str(e)})
 

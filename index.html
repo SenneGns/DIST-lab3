@@ -652,7 +652,7 @@
     async function deleteFile(ip, container, filename) {
         if (!confirm(`"${filename}" verwijderen?`)) return;
         try {
-            await apiPost('/api/node/' + ip + '/deleteFile', { containerName: container, filename });
+            await apiPost('/api/node/' + ip + '/deleteFile', { containerName: container, filename, ip });
             showToast(filename + ' verwijderd');
             loadFiles();
         } catch (e) { showToast('Error: ' + e.message); }
