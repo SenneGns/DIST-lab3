@@ -179,6 +179,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             elif rest.endswith("/readFile"):
                 ip = rest[:-len("/readFile")]
                 self._read_file(ip, qs.get("filename", [""])[0], qs.get("container", [""])[0])
+            elif rest.endswith("/syncList"):
+                self._proxy(f"http://{rest[:-len('/syncList')]}:{NODE_PORT}/agent/syncList")
             else:
                 self.send_response(404); self.end_headers()
         else:

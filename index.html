@@ -217,6 +217,7 @@
     <div class="nav-item" onclick="showView('files', this)">Files</div>
     <div class="nav-item" onclick="showView('logs', this)">Logs</div>
     <div class="nav-item" onclick="showView('beheer', this)">Beheer</div>
+    <div class="nav-item" onclick="showView('syncagent', this)">SyncAgent</div>
 </div>
 
 <div class="main">
@@ -301,6 +302,20 @@
         <div class="log-area" id="log-output">Select a container above...</div>
     </div>
 
+    <!-- SyncAgent -->
+    <div id="view-syncagent" class="view">
+        <div class="header">
+            <h1>SYNCAGENT</h1>
+            <div>
+                <label style="font-size:12px;color:#888;margin-right:10px">
+                    <input type="checkbox" id="sync-auto" checked style="margin-right:4px">Auto-refresh (5s)
+                </label>
+                <button class="btn btn-primary btn-sm" onclick="loadSyncAgent()">&#8635; Refresh</button>
+            </div>
+        </div>
+        <div id="sync-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px"></div>
+    </div>
+
     <!-- Beheer -->
     <div id="view-beheer" class="view">
         <div class="card">
@@ -339,6 +354,7 @@
     let currentView = 'dashboard';
     let logsTimer = null;
     let filesTimer = null;
+    let syncTimer = null;
 
     // ── View switching ──────────────────────────────────────────────────────
     function showView(view, el) {
@@ -350,12 +366,20 @@
 
         clearInterval(logsTimer); logsTimer = null;
         clearInterval(filesTimer); filesTimer = null;
+        clearInterval(syncTimer); syncTimer = null;
         if (view === 'files')  {
             updateNodeSelect(); loadFiles();
             filesTimer = setInterval(() => { if (currentView === 'files') loadFiles(); }, 5000);
         }
         if (view === 'logs')   { populateLogSelector(); startLogsRefresh(); }
         if (view === 'beheer') loadContainersTable();
+        if (view === 'syncagent') {
+            loadSyncAgent();
+            syncTimer = setInterval(() => {
+                if (currentView === 'syncagent' && document.getElementById('sync-auto').checked)
+                    loadSyncAgent();
+            }, 5000);
+        }
     }
 
     // ── Toast ───────────────────────────────────────────────────────────────
@@ -742,6 +766,53 @@
         } catch (e) {
             document.getElementById('log-output').textContent = 'Error: ' + e.message;
         }
+    }
+
+    // ── SyncAgent view ──────────────────────────────────────────────────────
+    async function loadSyncAgent() {
+        const grid = document.getElementById('sync-grid');
+        const online = allNodes.filter(n => n.status === 'online' && n.ip);
+        if (!online.length) {
+            grid.innerHTML = '<p style="color:#666">No online nodes found.</p>';
+            return;
+        }
+        const results = await Promise.all(online.map(async n => {
+            try {
+                const res = await fetch(`/api/node/${n.ip}/syncList`);
+                const list = res.ok ? await res.json() : null;
+                return { node: n, list };
+            } catch { return { node: n, list: null }; }
+        }));
+        grid.innerHTML = results.map(({ node, list }) => {
+            const label = node.nodeName || node.containerName || node.ip;
+            const rows = list === null
+                ? '<tr><td colspan="2" style="color:#666;font-style:italic">Unreachable</td></tr>'
+                : Object.keys(list).length === 0
+                    ? '<tr><td colspan="2" style="color:#666;font-style:italic">Empty list</td></tr>'
+                    : Object.entries(list).map(([file, locked]) => `
+                        <tr>
+                            <td style="word-break:break-all">${esc(file)}</td>
+                            <td style="text-align:center">
+                                <span style="padding:2px 8px;border-radius:10px;font-size:11px;font-weight:bold;
+                                    background:${locked ? '#4a1030' : '#1a3a1a'};
+                                    color:${locked ? '#f48fb1' : '#81c784'}">
+                                    ${locked ? 'LOCKED' : 'free'}
+                                </span>
+                            </td>
+                        </tr>`).join('');
+            return `<div class="card">
+                <h2 style="margin-bottom:12px;font-size:14px">${esc(label)}
+                    <span style="font-size:11px;color:#666;font-weight:normal;margin-left:6px">${esc(node.ip)}</span>
+                </h2>
+                <table style="width:100%">
+                    <thead><tr>
+                        <th style="text-align:left">File</th>
+                        <th style="text-align:center;width:80px">Status</th>
+                    </tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>`;
+        }).join('');
     }
 
     // ── Beheer view ─────────────────────────────────────────────────────────
