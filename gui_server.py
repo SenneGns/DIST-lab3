@@ -46,6 +46,61 @@ def get_node_image():
     return img or "dist-lab3-node-a"
 
 
+def build_node_list():
+    """Merges naming server nodes and running Docker containers into one list."""
+    nodes_by_ip = {}
+
+    # Source 1: naming server
+    raw = http_get(f"{NAMING_SERVER}/naming/nodes")
+    if raw:
+        try:
+            for node_id, ip in json.loads(raw).items():
+                node = {"nodeId": node_id, "ip": ip, "status": "offline"}
+                info = http_get(f"http://{ip}:{NODE_PORT}/node/info", timeout=2)
+                if info:
+                    try:
+                        node.update(json.loads(info))
+                        node["status"] = "online"
+                    except Exception:
+                        pass
+                nodes_by_ip[ip] = node
+        except Exception:
+            pass
+
+    # Source 2: running Docker node containers
+    try:
+        r = subprocess.run(
+            ["docker", "ps", "--format", "{{.Names}}\t{{.Status}}"],
+            capture_output=True, text=True, timeout=5
+        )
+        for line in r.stdout.strip().splitlines():
+            parts = line.split("\t")
+            if len(parts) < 2:
+                continue
+            name, status = parts[0].strip(), parts[1].strip()
+            if not name.startswith("node-") or name == "naming-server":
+                continue
+            ip = docker_inspect(name, "{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}")
+            if not ip:
+                continue
+            if ip in nodes_by_ip:
+                nodes_by_ip[ip]["containerName"] = name
+            else:
+                node = {"ip": ip, "containerName": name, "status": "starting"}
+                info = http_get(f"http://{ip}:{NODE_PORT}/node/info", timeout=1)
+                if info:
+                    try:
+                        node.update(json.loads(info))
+                        node["status"] = "online"
+                    except Exception:
+                        pass
+                nodes_by_ip[ip] = node
+    except Exception:
+        pass
+
+    return list(nodes_by_ip.values())
+
+
 class Handler(http.server.BaseHTTPRequestHandler):
 
     def log_message(self, fmt, *args):
@@ -128,6 +183,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._remove_node(data)
         elif path == "/api/node/restart":
             self._restart_node(data)
+        elif path.startswith("/api/node/") and path.endswith("/lock"):
+            ip = path[len("/api/node/"):-len("/lock")]
+            self._node_lock_action(ip, data.get("filename", ""), "lock")
+        elif path.startswith("/api/node/") and path.endswith("/unlock"):
+            ip = path[len("/api/node/"):-len("/unlock")]
+            self._node_lock_action(ip, data.get("filename", ""), "unlock")
         else:
             self.send_response(404); self.end_headers()
 
@@ -139,27 +200,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.send_json(503, {"error": "unreachable"})
 
     def _nodes(self):
-        raw = http_get(f"{NAMING_SERVER}/naming/nodes")
-        if not raw:
-            self.send_json(503, {"error": "naming server niet bereikbaar"})
-            return
-        try:
-            nodes_map = json.loads(raw)
-        except Exception:
-            self.send_json(500, {"error": "ongeldige response"})
-            return
-
-        result = []
-        for node_id, ip in nodes_map.items():
-            node = {"nodeId": node_id, "ip": ip}
-            info = http_get(f"http://{ip}:{NODE_PORT}/node/info", timeout=2)
-            if info:
-                try:
-                    node.update(json.loads(info))
-                except Exception:
-                    pass
-            result.append(node)
-        self.send_json(200, result)
+        self.send_json(200, build_node_list())
 
     def _containers(self):
         try:
@@ -240,6 +281,21 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 self.send_json(200, {"ok": True})
             else:
                 self.send_json(500, {"error": r.stderr.strip()})
+        except Exception as e:
+            self.send_json(500, {"error": str(e)})
+
+    def _node_lock_action(self, ip, filename, action):
+        if not filename:
+            self.send_json(400, {"error": "filename required"})
+            return
+        import urllib.parse
+        encoded = urllib.parse.quote(filename)
+        url = f"http://{ip}:{NODE_PORT}/node/{action}?filename={encoded}"
+        try:
+            req = urllib.request.Request(url, data=b"", method="POST")
+            with urllib.request.urlopen(req, timeout=3):
+                pass
+            self.send_json(200, {"ok": True})
         except Exception as e:
             self.send_json(500, {"error": str(e)})
 

@@ -269,7 +269,7 @@
             <div class="card">
                 <h2>Replicated Files</h2>
                 <table>
-                    <thead><tr><th>Filename</th><th>Owner ID</th><th>Download from</th><th>Locked</th></tr></thead>
+                    <thead><tr><th>Filename</th><th>Owner ID</th><th>Download from</th><th>Status</th><th></th></tr></thead>
                     <tbody id="replicated-files"></tbody>
                 </table>
             </div>
@@ -487,11 +487,15 @@
         // Node circles + labels
         for (const p of pos) {
             const g = svgEl('g', {});
+            const online = p.node.status !== 'starting';
+            const strokeColor = online ? '#B5006E' : '#555';
+            const dashArray = online ? 'none' : '4 3';
 
             // Circle
             g.appendChild(svgEl('circle', {
                 cx: p.x, cy: p.y, r: nodeR,
-                fill: '#16213e', stroke: '#B5006E', 'stroke-width': 2
+                fill: '#16213e', stroke: strokeColor,
+                'stroke-width': 2, 'stroke-dasharray': dashArray
             }));
 
             // Node name
@@ -570,17 +574,39 @@
         try {
             const files = await apiFetch('/api/node/' + ip + '/files/replicated');
             document.getElementById('replicated-files').innerHTML = files.length
-                ? files.map(f => `<tr>
-                    <td>${esc(f.fileName)}</td>
-                    <td>${f.ownerId}</td>
-                    <td style="font-size:12px;color:#aaa">${esc(f.downloadLocation)}</td>
-                    <td>${f.locked ? '<span class="locked-badge">LOCKED</span>' : ''}</td>
-                  </tr>`).join('')
-                : '<tr><td colspan="4" style="color:#666">No replicated files</td></tr>';
+                ? files.map(f => {
+                    const lockBtn = f.locked
+                        ? `<button class="btn btn-sm" style="background:#27ae60;color:white" onclick="unlockFile('${esc(ip)}','${esc(f.fileName)}')">Unlock</button>`
+                        : `<button class="btn btn-sm" style="background:#B5006E;color:white" onclick="lockFile('${esc(ip)}','${esc(f.fileName)}')">Lock</button>`;
+                    return `<tr>
+                        <td>${esc(f.fileName)}</td>
+                        <td>${f.ownerId}</td>
+                        <td style="font-size:12px;color:#aaa">${esc(f.downloadLocation)}</td>
+                        <td>${f.locked ? '<span class="locked-badge">LOCKED</span>' : '<span style="color:#666">—</span>'}</td>
+                        <td>${lockBtn}</td>
+                    </tr>`;
+                }).join('')
+                : '<tr><td colspan="5" style="color:#666">No replicated files</td></tr>';
         } catch {
             document.getElementById('replicated-files').innerHTML =
-                '<tr><td colspan="4" style="color:#666">Unavailable</td></tr>';
+                '<tr><td colspan="5" style="color:#666">Unavailable</td></tr>';
         }
+    }
+
+    async function lockFile(ip, filename) {
+        try {
+            await apiPost('/api/node/' + ip + '/lock', { filename });
+            showToast(filename + ' locked');
+            loadFiles();
+        } catch (e) { showToast('Error: ' + e.message); }
+    }
+
+    async function unlockFile(ip, filename) {
+        try {
+            await apiPost('/api/node/' + ip + '/unlock', { filename });
+            showToast(filename + ' unlocked');
+            loadFiles();
+        } catch (e) { showToast('Error: ' + e.message); }
     }
 
     // ── Logs view ───────────────────────────────────────────────────────────
