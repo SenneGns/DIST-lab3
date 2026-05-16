@@ -15,7 +15,6 @@
             height: 100vh;
         }
 
-        /* Sidebar */
         .sidebar {
             width: 200px;
             background: #0f0f1a;
@@ -59,7 +58,6 @@
             border-left: 3px solid #B5006E;
         }
 
-        /* Main */
         .main {
             flex: 1;
             overflow-y: auto;
@@ -73,26 +71,17 @@
             margin-bottom: 30px;
         }
 
-        h1 {
-            font-size: 22px;
-            color: #B5006E;
-            letter-spacing: 2px;
-        }
+        h1 { font-size: 22px; color: #B5006E; letter-spacing: 2px; }
 
         .refresh-info { font-size: 12px; color: #666; }
 
         .status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 6px;
+            width: 10px; height: 10px;
+            border-radius: 50%; display: inline-block; margin-right: 6px;
         }
-
         .dot-green { background: #4caf50; }
         .dot-red   { background: #f44336; }
 
-        /* Card */
         .card {
             background: #16213e;
             border-radius: 8px;
@@ -108,187 +97,111 @@
             margin-bottom: 15px;
         }
 
-        /* Table */
         table { width: 100%; border-collapse: collapse; font-size: 14px; }
 
         th {
-            text-align: left;
-            padding: 8px 12px;
-            color: #B5006E;
-            border-bottom: 1px solid #2a2a4e;
-            font-size: 12px;
-            letter-spacing: 1px;
+            text-align: left; padding: 8px 12px;
+            color: #B5006E; border-bottom: 1px solid #2a2a4e;
+            font-size: 12px; letter-spacing: 1px;
         }
 
-        td {
-            padding: 10px 12px;
-            border-bottom: 1px solid #1e1e3a;
-            color: #ccc;
-        }
-
+        td { padding: 10px 12px; border-bottom: 1px solid #1e1e3a; color: #ccc; }
         tr:hover td { background: #1e2a4a; }
 
-        /* Node cards */
         .nodes-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
             gap: 16px;
         }
 
-        .node-card {
-            background: #16213e;
-            border-radius: 8px;
-            padding: 16px;
-        }
+        .node-card { background: #16213e; border-radius: 8px; padding: 16px; }
 
         .node-card h3 {
-            font-size: 14px;
-            color: #B5006E;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
+            font-size: 14px; color: #B5006E;
+            margin-bottom: 12px; padding-bottom: 8px;
             border-bottom: 1px solid #2a2a4e;
         }
 
         .node-field {
-            display: flex;
-            justify-content: space-between;
-            font-size: 13px;
-            margin-bottom: 6px;
+            display: flex; justify-content: space-between;
+            font-size: 13px; margin-bottom: 6px;
         }
-
         .node-field .label { color: #888; }
         .node-field .value { color: #ddd; }
 
-        /* Buttons */
         .btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 13px;
-            margin-top: 10px;
+            padding: 8px 16px; border: none; border-radius: 4px;
+            cursor: pointer; font-size: 13px; margin-top: 10px;
         }
-
         .btn-primary { background: #B5006E; color: white; }
         .btn-primary:hover { background: #d4008a; }
-        .btn-danger { background: #c0392b; color: white; width: 100%; }
+        .btn-danger  { background: #c0392b; color: white; width: 100%; }
         .btn-danger:hover { background: #e74c3c; }
+        .btn-success { background: #27ae60; color: white; width: 100%; }
+        .btn-success:hover { background: #2ecc71; }
         .btn-sm { padding: 5px 12px; font-size: 12px; margin-top: 0; width: auto; }
 
-        /* Add form */
-        .add-form {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            align-items: flex-end;
-        }
+        .add-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
 
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
         .form-group label { font-size: 11px; color: #888; letter-spacing: 0.5px; }
 
         input[type="text"] {
-            background: #0f0f1a;
-            border: 1px solid #2a2a4e;
-            color: #ddd;
-            padding: 8px 12px;
-            border-radius: 4px;
-            font-size: 13px;
-            width: 180px;
+            background: #0f0f1a; border: 1px solid #2a2a4e;
+            color: #ddd; padding: 8px 12px; border-radius: 4px;
+            font-size: 13px; width: 180px;
         }
-
         input[type="text"]:focus { outline: none; border-color: #B5006E; }
 
-        /* Files */
-        .files-selector {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-
+        .files-selector { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
         .files-selector label { color: #888; font-size: 13px; }
 
         select {
-            background: #0f0f1a;
-            border: 1px solid #2a2a4e;
-            color: #ddd;
-            padding: 8px 12px;
-            border-radius: 4px;
-            font-size: 13px;
+            background: #0f0f1a; border: 1px solid #2a2a4e;
+            color: #ddd; padding: 8px 12px; border-radius: 4px; font-size: 13px;
         }
-
         select:focus { outline: none; border-color: #B5006E; }
 
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 
-        /* Views */
         .view { display: none; }
         .view.active { display: block; }
 
-        /* Toast */
         .toast {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: #B5006E;
-            color: white;
-            padding: 10px 18px;
-            border-radius: 6px;
-            font-size: 13px;
-            opacity: 0;
-            transition: opacity 0.3s;
-            pointer-events: none;
+            position: fixed; bottom: 20px; right: 20px;
+            background: #B5006E; color: white;
+            padding: 10px 18px; border-radius: 6px;
+            font-size: 13px; opacity: 0;
+            transition: opacity 0.3s; pointer-events: none;
         }
-
         .toast.show { opacity: 1; }
+
+        /* Ring SVG */
+        #ring-svg {
+            width: 100%; height: 360px;
+            display: block;
+        }
 
         /* Logs */
         .log-controls {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            margin-bottom: 16px;
-            flex-wrap: wrap;
+            display: flex; gap: 12px; align-items: center;
+            margin-bottom: 16px; flex-wrap: wrap;
         }
-
+        .log-controls label {
+            color: #888; font-size: 13px;
+            display: flex; align-items: center; gap: 6px; cursor: pointer;
+        }
         .log-area {
-            background: #0a0c14;
-            border: 1px solid #2a2a4e;
-            border-radius: 6px;
-            padding: 14px;
-            font-family: 'Consolas', monospace;
-            font-size: 12px;
-            white-space: pre-wrap;
-            overflow-y: auto;
-            max-height: calc(100vh - 260px);
-            color: #a3e635;
-            line-height: 1.5;
+            background: #0a0c14; border: 1px solid #2a2a4e;
+            border-radius: 6px; padding: 14px;
+            font-family: 'Consolas', monospace; font-size: 12px;
+            white-space: pre-wrap; overflow-y: auto;
+            max-height: calc(100vh - 260px); color: #a3e635; line-height: 1.5;
         }
 
         .locked-badge {
-            background: #7f1d1d;
-            color: #fca5a5;
-            font-size: 11px;
-            padding: 2px 6px;
-            border-radius: 3px;
-        }
-
-        .log-controls label {
-            color: #888;
-            font-size: 13px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
+            background: #7f1d1d; color: #fca5a5;
+            font-size: 11px; padding: 2px 6px; border-radius: 3px;
         }
     </style>
 </head>
@@ -314,6 +227,10 @@
 
     <!-- Dashboard -->
     <div id="view-dashboard" class="view active">
+        <div class="card">
+            <h2>Ring Topology</h2>
+            <svg id="ring-svg"></svg>
+        </div>
         <div class="card">
             <h2>Naming Server</h2>
             <table>
@@ -363,13 +280,13 @@
     <div id="view-logs" class="view">
         <div class="log-controls">
             <div style="display:flex;align-items:center;gap:8px;">
-                <label style="color:#888;font-size:13px;">Container:</label>
+                <label>Container:</label>
                 <select id="log-container" onchange="loadLogs()">
                     <option value="">— select —</option>
                 </select>
             </div>
             <div style="display:flex;align-items:center;gap:8px;">
-                <label style="color:#888;font-size:13px;">Lines:</label>
+                <label>Lines:</label>
                 <select id="log-lines" onchange="loadLogs()">
                     <option value="50">50</option>
                     <option value="100" selected>100</option>
@@ -377,9 +294,7 @@
                     <option value="500">500</option>
                 </select>
             </div>
-            <label class="log-controls">
-                <input type="checkbox" id="log-auto" checked> Auto-refresh (3s)
-            </label>
+            <label><input type="checkbox" id="log-auto" checked> Auto-refresh (3s)</label>
             <button class="btn btn-primary btn-sm" onclick="loadLogs()">&#8635; Refresh</button>
         </div>
         <div class="log-area" id="log-output">Select a container above...</div>
@@ -418,6 +333,7 @@
 <div id="toast" class="toast"></div>
 
 <script>
+    const SVG_NS = 'http://www.w3.org/2000/svg';
     let allNodes = [];
     let currentView = 'dashboard';
     let logsTimer = null;
@@ -431,9 +347,8 @@
         currentView = view;
 
         clearInterval(logsTimer); logsTimer = null;
-
-        if (view === 'files') { updateNodeSelect(); loadFiles(); }
-        if (view === 'logs')  { populateLogSelector(); startLogsRefresh(); }
+        if (view === 'files')  { updateNodeSelect(); loadFiles(); }
+        if (view === 'logs')   { populateLogSelector(); startLogsRefresh(); }
         if (view === 'beheer') loadContainersTable();
     }
 
@@ -445,14 +360,13 @@
         setTimeout(() => t.classList.remove('show'), 2500);
     }
 
-    // ── Nodes refresh ───────────────────────────────────────────────────────
+    // ── Data refresh ────────────────────────────────────────────────────────
     async function refresh() {
         try {
-            const nodes = await apiFetch('/api/nodes');
-            allNodes = nodes;
+            allNodes = await apiFetch('/api/nodes');
             document.getElementById('ns-status').innerHTML =
                 '<span class="status-dot dot-green"></span>online';
-            document.getElementById('ns-count').textContent = nodes.length;
+            document.getElementById('ns-count').textContent = allNodes.length;
             document.getElementById('refresh-ts').textContent =
                 'Updated: ' + new Date().toLocaleTimeString();
         } catch {
@@ -464,10 +378,12 @@
 
         renderDashboard();
         if (currentView === 'nodes') renderNodeCards();
-        if (currentView === 'files') { updateNodeSelect(); loadFiles(); }
+        if (currentView === 'files') updateNodeSelect();
     }
 
+    // ── Dashboard ───────────────────────────────────────────────────────────
     function renderDashboard() {
+        drawRing(allNodes);
         document.getElementById('dashboard-nodes').innerHTML = allNodes.length
             ? allNodes.map(n => `<tr>
                 <td>${esc(n.nodeName || '-')}</td>
@@ -480,6 +396,137 @@
             : '<tr><td colspan="6" style="color:#666">No nodes</td></tr>';
     }
 
+    // ── Ring topology ───────────────────────────────────────────────────────
+    function sortByRing(nodes) {
+        if (nodes.length <= 1) return [...nodes];
+        const byId = {};
+        for (const n of nodes) byId[+(n.currentID ?? n.nodeId)] = n;
+
+        const start = nodes.reduce((a, b) =>
+            (+(a.currentID ?? a.nodeId)) < (+(b.currentID ?? b.nodeId)) ? a : b
+        );
+
+        const ordered = [start];
+        const seen = new Set([+(start.currentID ?? start.nodeId)]);
+        let cur = start;
+
+        for (let i = 0; i < nodes.length - 1; i++) {
+            const next = byId[+cur.nextID];
+            if (!next || seen.has(+cur.nextID)) break;
+            ordered.push(next);
+            seen.add(+cur.nextID);
+            cur = next;
+        }
+
+        return ordered.length === nodes.length ? ordered : [...nodes];
+    }
+
+    function svgEl(tag, attrs) {
+        const el = document.createElementNS(SVG_NS, tag);
+        for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+        return el;
+    }
+
+    function drawRing(nodes) {
+        const svg = document.getElementById('ring-svg');
+        svg.innerHTML = '';
+        const W = svg.clientWidth || 700, H = 360;
+        svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+        if (!nodes.length) {
+            const t = svgEl('text', { x: W/2, y: H/2, 'text-anchor': 'middle', fill: '#555', 'font-size': 14 });
+            t.textContent = 'No nodes active';
+            svg.appendChild(t);
+            return;
+        }
+
+        // Arrowhead marker
+        const defs = svgEl('defs', {});
+        const marker = svgEl('marker', {
+            id: 'arr', markerWidth: 8, markerHeight: 6,
+            refX: 7, refY: 3, orient: 'auto'
+        });
+        const poly = svgEl('polygon', { points: '0 0, 8 3, 0 6', fill: '#B5006E' });
+        marker.appendChild(poly);
+        defs.appendChild(marker);
+        svg.appendChild(defs);
+
+        const cx = W / 2, cy = H / 2;
+        const nodeR = 32;
+        const ringR = Math.min(W / 2, H / 2) - nodeR - 30;
+        const ordered = sortByRing(nodes);
+        const n = ordered.length;
+
+        // Positions around the ring
+        const pos = ordered.map((node, i) => {
+            const angle = (2 * Math.PI * i / n) - Math.PI / 2;
+            return { node, x: cx + ringR * Math.cos(angle), y: cy + ringR * Math.sin(angle) };
+        });
+
+        // Dashed ring circle
+        if (n > 1) {
+            svg.appendChild(svgEl('circle', {
+                cx, cy, r: ringR, fill: 'none',
+                stroke: '#2a2a4e', 'stroke-width': 1, 'stroke-dasharray': '5 5'
+            }));
+        }
+
+        // Arrows between nodes
+        for (let i = 0; i < n; i++) {
+            const from = pos[i], to = pos[(i + 1) % n];
+            const dx = to.x - from.x, dy = to.y - from.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            const ux = dx / dist, uy = dy / dist;
+            svg.appendChild(svgEl('line', {
+                x1: from.x + ux * (nodeR + 2), y1: from.y + uy * (nodeR + 2),
+                x2: to.x   - ux * (nodeR + 10), y2: to.y   - uy * (nodeR + 10),
+                stroke: '#B5006E', 'stroke-width': 1.5, 'marker-end': 'url(#arr)'
+            }));
+        }
+
+        // Node circles + labels
+        for (const p of pos) {
+            const g = svgEl('g', {});
+
+            // Circle
+            g.appendChild(svgEl('circle', {
+                cx: p.x, cy: p.y, r: nodeR,
+                fill: '#16213e', stroke: '#B5006E', 'stroke-width': 2
+            }));
+
+            // Node name
+            const name = svgEl('text', {
+                x: p.x, y: p.y - 6,
+                'text-anchor': 'middle', fill: '#ffffff',
+                'font-size': 11, 'font-weight': 'bold',
+                'font-family': 'Segoe UI, sans-serif'
+            });
+            name.textContent = p.node.nodeName || p.node.ip;
+            g.appendChild(name);
+
+            // Node ID
+            const id = svgEl('text', {
+                x: p.x, y: p.y + 8,
+                'text-anchor': 'middle', fill: '#B5006E',
+                'font-size': 9, 'font-family': 'Consolas, monospace'
+            });
+            id.textContent = 'ID: ' + (p.node.currentID ?? p.node.nodeId);
+            g.appendChild(id);
+
+            // IP below circle
+            const ip = svgEl('text', {
+                x: p.x, y: p.y + nodeR + 14,
+                'text-anchor': 'middle', fill: '#777',
+                'font-size': 9, 'font-family': 'Consolas, monospace'
+            });
+            ip.textContent = p.node.ip;
+            g.appendChild(ip);
+
+            svg.appendChild(g);
+        }
+    }
+
+    // ── Nodes view ──────────────────────────────────────────────────────────
     function renderNodeCards() {
         document.getElementById('nodes-grid').innerHTML = allNodes.length
             ? allNodes.map(n => `
@@ -496,14 +543,14 @@
             : '<div style="color:#666;font-size:13px;">No nodes found</div>';
     }
 
-    // ── Files ───────────────────────────────────────────────────────────────
+    // ── Files view ──────────────────────────────────────────────────────────
     function updateNodeSelect() {
         const sel = document.getElementById('node-select');
-        const current = sel.value;
+        const cur = sel.value;
         sel.innerHTML = allNodes.map(n =>
             `<option value="${esc(n.ip)}">${esc(n.nodeName || n.ip)} (${esc(n.ip)})</option>`
         ).join('');
-        if (current) sel.value = current;
+        if (cur) sel.value = cur;
     }
 
     async function loadFiles() {
@@ -536,15 +583,15 @@
         }
     }
 
-    // ── Logs ────────────────────────────────────────────────────────────────
+    // ── Logs view ───────────────────────────────────────────────────────────
     async function populateLogSelector() {
         const sel = document.getElementById('log-container');
         try {
             const containers = await apiFetch('/api/containers');
-            const current = sel.value;
+            const cur = sel.value;
             sel.innerHTML = '<option value="">— select —</option>' +
                 containers.map(c =>
-                    `<option value="${esc(c.name)}" ${c.name === current ? 'selected' : ''}>${esc(c.name)} (${c.status.split(' ')[0]})</option>`
+                    `<option value="${esc(c.name)}" ${c.name === cur ? 'selected' : ''}>${esc(c.name)} (${c.status.split(' ')[0]})</option>`
                 ).join('');
             if (sel.value) loadLogs();
         } catch {
@@ -575,7 +622,7 @@
         }
     }
 
-    // ── Beheer ──────────────────────────────────────────────────────────────
+    // ── Beheer view ─────────────────────────────────────────────────────────
     function onNameInput() {
         const name = document.getElementById('add-name').value.toLowerCase().trim();
         if (name) document.getElementById('add-container').value = 'node-' + name;
@@ -593,20 +640,24 @@
             document.getElementById('add-ip').value = '';
             document.getElementById('add-container').value = '';
             loadContainersTable();
-        } catch (e) {
-            showToast('Error: ' + e.message);
-        }
+        } catch (e) { showToast('Error: ' + e.message); }
     }
 
-    async function removeNode(containerName) {
+    async function stopNode(containerName) {
         if (!confirm(`Stop node "${containerName}"?`)) return;
         try {
             await apiPost('/api/node/remove', { containerName });
             showToast(`"${containerName}" stopped`);
             loadContainersTable();
-        } catch (e) {
-            showToast('Error: ' + e.message);
-        }
+        } catch (e) { showToast('Error: ' + e.message); }
+    }
+
+    async function restartNode(containerName) {
+        try {
+            await apiPost('/api/node/restart', { containerName });
+            showToast(`"${containerName}" started`);
+            loadContainersTable();
+        } catch (e) { showToast('Error: ' + e.message); }
     }
 
     async function loadContainersTable() {
@@ -616,13 +667,16 @@
             tbody.innerHTML = containers.map(c => {
                 const running = c.status.toLowerCase().startsWith('up');
                 const isNode = c.name.startsWith('node-');
+                let btn = '';
+                if (isNode && running)
+                    btn = `<button class="btn btn-danger btn-sm" onclick="stopNode('${esc(c.name)}')">Stop</button>`;
+                else if (isNode && !running)
+                    btn = `<button class="btn btn-success btn-sm" onclick="restartNode('${esc(c.name)}')">Start</button>`;
                 return `<tr>
                     <td><span class="status-dot ${running ? 'dot-green' : 'dot-red'}"></span>${esc(c.name)}</td>
                     <td style="color:${running ? '#4caf50' : '#888'};font-size:13px">${esc(c.status)}</td>
                     <td style="font-size:12px;color:#666">${esc(c.image)}</td>
-                    <td>${isNode && running
-                        ? `<button class="btn btn-danger btn-sm" onclick="removeNode('${esc(c.name)}')">Stop</button>`
-                        : ''}</td>
+                    <td>${btn}</td>
                 </tr>`;
             }).join('');
         } catch {

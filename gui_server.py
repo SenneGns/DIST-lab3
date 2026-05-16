@@ -126,6 +126,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._add_node(data)
         elif path == "/api/node/remove":
             self._remove_node(data)
+        elif path == "/api/node/restart":
+            self._restart_node(data)
         else:
             self.send_response(404); self.end_headers()
 
@@ -207,8 +209,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
             f"--ip={ip}",
             "-e", "NAMING_SERVER_URL=http://naming-server:8080",
             "-v", f"{container}-data:{data_path}",
+            "--entrypoint", "sh",
             image,
-            "sh", "-c",
+            "-c",
             f"sleep 5 && exec java -Djava.net.preferIPv4Stack=true "
             f"-Dloader.main=discovery.ciscos.distlab4.NodeApplication "
             f"-jar /app/app.jar {name} {ip} {data_path}"
@@ -231,6 +234,23 @@ class Handler(http.server.BaseHTTPRequestHandler):
         try:
             r = subprocess.run(
                 ["docker", "stop", container],
+                capture_output=True, text=True, timeout=30
+            )
+            if r.returncode == 0:
+                self.send_json(200, {"ok": True})
+            else:
+                self.send_json(500, {"error": r.stderr.strip()})
+        except Exception as e:
+            self.send_json(500, {"error": str(e)})
+
+    def _restart_node(self, data):
+        container = data.get("containerName", "").strip()
+        if not container:
+            self.send_json(400, {"error": "containerName is verplicht"})
+            return
+        try:
+            r = subprocess.run(
+                ["docker", "start", container],
                 capture_output=True, text=True, timeout=30
             )
             if r.returncode == 0:
