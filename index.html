@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Distributed Systems Dashboard</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, sans-serif; background: #0f1117; color: #e0e0e0; min-height: 100vh; }
+
+header {
+  background: #1a1d26; padding: 14px 24px;
+  border-bottom: 1px solid #2d3148;
+  display: flex; align-items: center; justify-content: space-between;
+}
+header h1 { font-size: 1.1rem; color: #7dd3fc; font-weight: 600; }
+
+nav { display: flex; gap: 4px; }
+.tab-btn {
+  background: none; border: none; color: #9ca3af;
+  padding: 7px 16px; border-radius: 6px; cursor: pointer;
+  font-size: 0.88rem; transition: all 0.15s;
+}
+.tab-btn:hover { background: #2d3148; color: #e0e0e0; }
+.tab-btn.active { background: #2563eb; color: white; }
+
+.tab-panel { display: none; padding: 24px; }
+.tab-panel.active { display: block; }
+
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 18px;
+}
+.section-header h2 { font-size: 1rem; color: #e0e0e0; font-weight: 600; }
+.refresh-info { font-size: 0.75rem; color: #6b7280; }
+
+/* ── Cards ── */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+.card {
+  background: #1a1d26; border: 1px solid #2d3148;
+  border-radius: 10px; padding: 16px; cursor: pointer;
+  transition: border-color 0.15s;
+}
+.card:hover { border-color: #3b82f6; }
+.card.selected { border-color: #3b82f6; background: #1e2336; }
+
+.card-title {
+  font-size: 0.95rem; font-weight: 600; color: #7dd3fc;
+  margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+}
+.badge {
+  font-size: 0.68rem; background: #2d3148; color: #9ca3af;
+  padding: 2px 8px; border-radius: 12px; font-weight: normal;
+}
+.kv { display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 5px; }
+.kv-key { color: #9ca3af; }
+.kv-val { color: #e0e0e0; font-family: monospace; }
+
+/* ── Detail panel ── */
+.detail-panel {
+  background: #1a1d26; border: 1px solid #2d3148;
+  border-radius: 10px; padding: 20px; margin-top: 20px;
+}
+.detail-title {
+  font-size: 0.78rem; font-weight: 600; color: #9ca3af;
+  margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.06em;
+}
+.files-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+.file-list { list-style: none; }
+.file-list li {
+  font-size: 0.82rem; padding: 5px 8px; border-radius: 4px;
+  margin-bottom: 3px; display: flex; align-items: center; gap: 6px;
+}
+.file-list li:nth-child(odd) { background: #141720; }
+
+/* ── Table ── */
+table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+th {
+  text-align: left; padding: 8px 10px; color: #6b7280;
+  border-bottom: 1px solid #2d3148; font-weight: 500;
+}
+td { padding: 7px 10px; border-bottom: 1px solid #141720; }
+tr:hover td { background: #1e2336; }
+
+/* ── Badges ── */
+.locked-badge {
+  background: #7f1d1d; color: #fca5a5;
+  font-size: 0.65rem; padding: 2px 6px; border-radius: 3px;
+}
+.status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.status-up { background: #22c55e; box-shadow: 0 0 4px #22c55e; }
+.status-down { background: #ef4444; }
+
+/* ── Log area ── */
+.log-area {
+  background: #0a0c14; border: 1px solid #2d3148; border-radius: 8px;
+  padding: 14px; font-family: monospace; font-size: 0.78rem;
+  white-space: pre-wrap; overflow-y: auto; max-height: 65vh;
+  color: #a3e635; line-height: 1.5;
+}
+
+/* ── Controls / Forms ── */
+.controls { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+select, input[type=text], input[type=number] {
+  background: #1a1d26; border: 1px solid #2d3148; color: #e0e0e0;
+  padding: 7px 12px; border-radius: 6px; font-size: 0.85rem; outline: none;
+}
+select:focus, input:focus { border-color: #3b82f6; }
+
+button { padding: 7px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 0.85rem; transition: background 0.15s; }
+.btn-primary { background: #2563eb; color: white; }
+.btn-primary:hover { background: #1d4ed8; }
+.btn-danger { background: #dc2626; color: white; }
+.btn-danger:hover { background: #b91c1c; }
+.btn-sm { padding: 4px 10px; font-size: 0.75rem; }
+
+.form-section { background: #1a1d26; border: 1px solid #2d3148; border-radius: 10px; padding: 18px; margin-bottom: 20px; }
+.form-section h3 { font-size: 0.88rem; color: #9ca3af; margin-bottom: 14px; font-weight: 500; }
+.form-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-group label { font-size: 0.73rem; color: #9ca3af; }
+.form-group input { width: 190px; }
+
+.alert {
+  padding: 10px 14px; border-radius: 6px; font-size: 0.85rem;
+  margin-bottom: 14px; display: none;
+}
+.alert.show { display: block; }
+.alert.success { background: #1f2a1f; border: 1px solid #166534; color: #86efac; }
+.alert.error { background: #2a1f1f; border: 1px solid #991b1b; color: #fca5a5; }
+
+.ip-hint { font-size: 0.73rem; color: #6b7280; margin-top: 3px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>&#9432; Distributed Systems Dashboard</h1>
+  <nav>
+    <button class="tab-btn active" data-tab="nodes" onclick="showTab(this)">Nodes</button>
+    <button class="tab-btn" data-tab="logs" onclick="showTab(this)">Logs</button>
+    <button class="tab-btn" data-tab="beheer" onclick="showTab(this)">Beheer</button>
+  </nav>
+</header>
+
+<!-- ═══════════════════════  TAB: NODES  ═══════════════════════ -->
+<div id="tab-nodes" class="tab-panel active">
+  <div class="section-header">
+    <h2>Actieve nodes</h2>
+    <span class="refresh-info" id="nodes-ts"></span>
+  </div>
+  <div class="cards" id="node-cards">
+    <span style="color:#6b7280">Laden...</span>
+  </div>
+  <div id="node-detail"></div>
+</div>
+
+<!-- ═══════════════════════  TAB: LOGS  ════════════════════════ -->
+<div id="tab-logs" class="tab-panel">
+  <div class="section-header"><h2>Container logs</h2></div>
+  <div class="controls">
+    <select id="log-container" onchange="loadLogs()">
+      <option value="">— selecteer container —</option>
+    </select>
+    <select id="log-lines" onchange="loadLogs()">
+      <option value="50">50 regels</option>
+      <option value="100" selected>100 regels</option>
+      <option value="200">200 regels</option>
+      <option value="500">500 regels</option>
+    </select>
+    <label style="font-size:0.85rem;color:#9ca3af;display:flex;align-items:center;gap:6px;cursor:pointer;">
+      <input type="checkbox" id="log-auto" checked onchange="toggleAutoLogs()"> Auto-refresh (3s)
+    </label>
+    <button class="btn-primary" onclick="loadLogs()">&#8635; Vernieuwen</button>
+  </div>
+  <div class="log-area" id="log-output">Selecteer een container hierboven...</div>
+</div>
+
+<!-- ═══════════════════════  TAB: BEHEER  ══════════════════════ -->
+<div id="tab-beheer" class="tab-panel">
+  <div id="beheer-alert" class="alert"></div>
+
+  <div class="form-section">
+    <h3>&#43; Node toevoegen</h3>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Node naam</label>
+        <input type="text" id="add-name" placeholder="bijv. Dave" oninput="onNameInput()">
+      </div>
+      <div class="form-group">
+        <label>IP adres</label>
+        <input type="text" id="add-ip" placeholder="172.20.0.13">
+        <span class="ip-hint">Vrije IP in 172.20.0.0/24</span>
+      </div>
+      <div class="form-group">
+        <label>Container naam</label>
+        <input type="text" id="add-container" placeholder="node-d">
+      </div>
+      <button class="btn-primary" onclick="addNode()">Starten</button>
+    </div>
+  </div>
+
+  <div class="section-header">
+    <h2>Alle containers</h2>
+    <button class="btn-primary btn-sm" onclick="loadContainersTable()">&#8635;</button>
+  </div>
+  <table>
+    <thead><tr><th>Naam</th><th>Status</th><th>Image</th><th></th></tr></thead>
+    <tbody id="container-table"><tr><td colspan="4" style="color:#6b7280">Laden...</td></tr></tbody>
+  </table>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let selectedIp = null;
+let nodesTimer = null;
+let logsTimer = null;
+let activeTab = 'nodes';
+
+// ── Tab switching ──────────────────────────────────────────────────────────
+function showTab(btn) {
+  const tab = btn.dataset.tab;
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  btn.classList.add('active');
+  activeTab = tab;
+
+  clearInterval(logsTimer); logsTimer = null;
+
+  if (tab === 'nodes') {
+    if (!nodesTimer) startNodesRefresh();
+  } else {
+    clearInterval(nodesTimer); nodesTimer = null;
+    if (tab === 'logs') { populateLogSelector(); startLogsRefresh(); }
+    if (tab === 'beheer') loadContainersTable();
+  }
+}
+
+// ── Nodes tab ──────────────────────────────────────────────────────────────
+function startNodesRefresh() {
+  loadNodes();
+  nodesTimer = setInterval(loadNodes, 5000);
+}
+
+async function loadNodes() {
+  try {
+    const nodes = await apiFetch('/api/nodes');
+    renderCards(nodes);
+    document.getElementById('nodes-ts').textContent =
+      'Bijgewerkt: ' + new Date().toLocaleTimeString();
+    if (selectedIp) loadNodeDetail(selectedIp);
+  } catch {
+    document.getElementById('node-cards').innerHTML =
+      '<span style="color:#ef4444">Naming server niet bereikbaar</span>';
+  }
+}
+
+function renderCards(nodes) {
+  const c = document.getElementById('node-cards');
+  if (!nodes.length) { c.innerHTML = '<span style="color:#6b7280">Geen nodes gevonden</span>'; return; }
+  c.innerHTML = '';
+  for (const n of nodes) {
+    const div = document.createElement('div');
+    div.className = 'card' + (n.ip === selectedIp ? ' selected' : '');
+    div.onclick = () => selectNode(n, div);
+    div.innerHTML = `
+      <div class="card-title">
+        <span class="status-dot status-up"></span>
+        ${esc(n.nodeName || 'Node')}
+        <span class="badge">ID ${esc(String(n.currentID ?? n.nodeId))}</span>
+      </div>
+      <div class="kv"><span class="kv-key">IP</span><span class="kv-val">${esc(n.ip)}</span></div>
+      <div class="kv"><span class="kv-key">Vorige ID</span><span class="kv-val">${n.previousID ?? '—'}</span></div>
+      <div class="kv"><span class="kv-key">Volgende ID</span><span class="kv-val">${n.nextID ?? '—'}</span></div>
+    `;
+    c.appendChild(div);
+  }
+}
+
+function selectNode(node, el) {
+  selectedIp = node.ip;
+  document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  loadNodeDetail(node.ip);
+}
+
+async function loadNodeDetail(ip) {
+  const detail = document.getElementById('node-detail');
+  try {
+    const [local, replicated] = await Promise.all([
+      apiFetch('/api/node/' + ip + '/files/local'),
+      apiFetch('/api/node/' + ip + '/files/replicated'),
+    ]);
+
+    const locHtml = local.length
+      ? local.map(f => `<li>&#128196; ${esc(f)}</li>`).join('')
+      : '<li style="color:#6b7280">Geen lokale bestanden</li>';
+
+    const replHtml = replicated.length
+      ? replicated.map(e => `<tr>
+          <td>${esc(e.fileName)}</td>
+          <td style="font-family:monospace;font-size:0.78rem">${esc(e.downloadLocation)}</td>
+          <td style="font-family:monospace">${e.ownerId}</td>
+          <td>${e.locked ? '<span class="locked-badge">LOCKED</span>' : '&#10003;'}</td>
+        </tr>`).join('')
+      : '<tr><td colspan="4" style="color:#6b7280">Geen replica\'s</td></tr>';
+
+    detail.innerHTML = `
+      <div class="detail-panel">
+        <div class="files-grid">
+          <div>
+            <div class="detail-title">Lokale bestanden (${local.length})</div>
+            <ul class="file-list">${locHtml}</ul>
+          </div>
+          <div>
+            <div class="detail-title">Gerepliceerde bestanden (${replicated.length})</div>
+            <table>
+              <thead><tr><th>Bestand</th><th>Download van</th><th>Owner ID</th><th>Status</th></tr></thead>
+              <tbody>${replHtml}</tbody>
+            </table>
+          </div>
+        </div>
+      </div>`;
+  } catch {
+    detail.innerHTML = '<div style="margin-top:16px;color:#ef4444">Fout bij laden node details</div>';
+  }
+}
+
+// ── Logs tab ───────────────────────────────────────────────────────────────
+async function populateLogSelector() {
+  const sel = document.getElementById('log-container');
+  try {
+    const containers = await apiFetch('/api/containers');
+    const current = sel.value;
+    sel.innerHTML = '<option value="">— selecteer container —</option>' +
+      containers.map(c =>
+        `<option value="${esc(c.name)}" ${c.name === current ? 'selected' : ''}>${esc(c.name)} (${c.status.split(' ')[0]})</option>`
+      ).join('');
+    if (sel.value) loadLogs();
+  } catch {
+    sel.innerHTML = '<option value="">Fout bij laden</option>';
+  }
+}
+
+function startLogsRefresh() {
+  loadLogs();
+  logsTimer = setInterval(() => {
+    if (document.getElementById('log-auto').checked) loadLogs();
+  }, 3000);
+}
+
+function toggleAutoLogs() {
+  // checkbox state is read in the interval
+}
+
+async function loadLogs() {
+  const container = document.getElementById('log-container').value;
+  if (!container) return;
+  const lines = document.getElementById('log-lines').value;
+  try {
+    const res = await fetch(`/api/logs/${container}?lines=${lines}`);
+    const text = await res.text();
+    const area = document.getElementById('log-output');
+    const atBottom = area.scrollTop + area.clientHeight >= area.scrollHeight - 20;
+    area.textContent = text || '(geen output)';
+    if (atBottom) area.scrollTop = area.scrollHeight;
+  } catch (e) {
+    document.getElementById('log-output').textContent = 'Fout: ' + e.message;
+  }
+}
+
+// ── Beheer tab ─────────────────────────────────────────────────────────────
+function onNameInput() {
+  const name = document.getElementById('add-name').value.toLowerCase().trim();
+  if (name) document.getElementById('add-container').value = 'node-' + name;
+}
+
+async function addNode() {
+  const name = document.getElementById('add-name').value.trim();
+  const ip = document.getElementById('add-ip').value.trim();
+  const containerName = document.getElementById('add-container').value.trim();
+  if (!name || !ip || !containerName) {
+    showBeheerAlert('Vul alle velden in.', true); return;
+  }
+  try {
+    const data = await apiPost('/api/node/add', { name, ip, containerName });
+    showBeheerAlert(`Node "${name}" gestart (${data.containerId})`, false);
+    loadContainersTable();
+  } catch (e) {
+    showBeheerAlert('Fout: ' + e.message, true);
+  }
+}
+
+async function removeNode(containerName) {
+  if (!confirm(`Node "${containerName}" stoppen?`)) return;
+  try {
+    await apiPost('/api/node/remove', { containerName });
+    showBeheerAlert(`"${containerName}" gestopt`, false);
+    loadContainersTable();
+  } catch (e) {
+    showBeheerAlert('Fout: ' + e.message, true);
+  }
+}
+
+async function loadContainersTable() {
+  const tbody = document.getElementById('container-table');
+  try {
+    const containers = await apiFetch('/api/containers');
+    tbody.innerHTML = containers.map(c => {
+      const running = c.status.toLowerCase().startsWith('up');
+      const isNode = c.name.startsWith('node-') && c.name !== 'naming-server';
+      return `<tr>
+        <td><span class="status-dot ${running ? 'status-up' : 'status-down'}" style="margin-right:6px"></span>${esc(c.name)}</td>
+        <td style="color:${running ? '#86efac' : '#9ca3af'};font-size:0.82rem">${esc(c.status)}</td>
+        <td style="font-size:0.75rem;color:#6b7280">${esc(c.image)}</td>
+        <td>${isNode && running
+          ? `<button class="btn-danger btn-sm" onclick="removeNode('${esc(c.name)}')">Stoppen</button>`
+          : ''}</td>
+      </tr>`;
+    }).join('');
+  } catch {
+    tbody.innerHTML = '<tr><td colspan="4" style="color:#ef4444">Fout bij laden</td></tr>';
+  }
+}
+
+function showBeheerAlert(msg, isError) {
+  const el = document.getElementById('beheer-alert');
+  el.className = 'alert show ' + (isError ? 'error' : 'success');
+  el.textContent = msg;
+  setTimeout(() => el.classList.remove('show'), 5000);
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+async function apiFetch(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+async function apiPost(url, body) {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+startNodesRefresh();
+</script>
+</body>
+</html>
