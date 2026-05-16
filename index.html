@@ -597,9 +597,14 @@
             try {
                 const files = await apiFetch('/api/node/' + ip + '/files/local');
                 localHtml = files.length
-                    ? files.map(f => `<tr style="cursor:pointer" title="Click to edit"
-                          onclick="openFile('${esc(ip)}','${esc(container)}','${esc(f)}')">
-                          <td>&#128196; ${esc(f)}</td></tr>`).join('')
+                    ? files.map(f => `<tr>
+                          <td style="cursor:pointer" title="Click to edit"
+                              onclick="openFile('${esc(ip)}','${esc(container)}','${esc(f)}')">
+                              &#128196; ${esc(f)}</td>
+                          <td style="width:30px;text-align:right">
+                              <button class="btn btn-sm" style="background:#7f1d1d;color:#fca5a5;margin-top:0"
+                                  onclick="deleteFile('${esc(ip)}','${esc(container)}','${esc(f)}')">&#10005;</button>
+                          </td></tr>`).join('')
                     : '<tr><td style="color:#666">No local files</td></tr>';
             } catch { localHtml = '<tr><td style="color:#666">Unavailable</td></tr>'; }
 
@@ -642,6 +647,15 @@
         }));
 
         grid.innerHTML = panels.join('');
+    }
+
+    async function deleteFile(ip, container, filename) {
+        if (!confirm(`"${filename}" verwijderen?`)) return;
+        try {
+            await apiPost('/api/node/' + ip + '/deleteFile', { containerName: container, filename });
+            showToast(filename + ' verwijderd');
+            loadFiles();
+        } catch (e) { showToast('Error: ' + e.message); }
     }
 
     async function lockFile(ip, filename) {

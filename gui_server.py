@@ -210,6 +210,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         elif path.startswith("/api/node/") and path.endswith("/createFile"):
             ip = path[len("/api/node/"):-len("/createFile")]
             self._create_file(data)
+        elif path.startswith("/api/node/") and path.endswith("/deleteFile"):
+            self._delete_file(data)
         else:
             self.send_response(404); self.end_headers()
 
@@ -317,6 +319,25 @@ class Handler(http.server.BaseHTTPRequestHandler):
             with urllib.request.urlopen(req, timeout=3):
                 pass
             self.send_json(200, {"ok": True})
+        except Exception as e:
+            self.send_json(500, {"error": str(e)})
+
+    def _delete_file(self, data):
+        container = data.get("containerName", "").strip()
+        filename = data.get("filename", "").strip()
+        if not container or not filename:
+            self.send_json(400, {"error": "containerName and filename required"})
+            return
+        data_path = get_container_data_path(container)
+        try:
+            r = subprocess.run(
+                ["docker", "exec", container, "rm", f"{data_path}/{filename}"],
+                capture_output=True, text=True, timeout=5
+            )
+            if r.returncode == 0:
+                self.send_json(200, {"ok": True})
+            else:
+                self.send_json(500, {"error": r.stderr.strip()})
         except Exception as e:
             self.send_json(500, {"error": str(e)})
 
