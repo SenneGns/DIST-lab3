@@ -274,6 +274,22 @@
                 </table>
             </div>
         </div>
+        <div class="card" style="margin-top:0">
+            <h2>Create / Edit File</h2>
+            <div class="add-form" style="margin-bottom:12px">
+                <div class="form-group">
+                    <label>FILENAME</label>
+                    <input type="text" id="file-name" placeholder="example.txt">
+                </div>
+                <button class="btn btn-primary" onclick="saveFile()" style="margin-top:18px">Save</button>
+                <button class="btn" onclick="clearEditor()" style="margin-top:18px;background:#2a2a4e;color:#aaa">Clear</button>
+            </div>
+            <textarea id="file-content"
+                style="width:100%;height:180px;background:#0f0f1a;border:1px solid #2a2a4e;
+                       color:#ddd;padding:10px;border-radius:4px;font-family:Consolas,monospace;
+                       font-size:13px;resize:vertical;outline:none;"
+                placeholder="File content..."></textarea>
+        </div>
     </div>
 
     <!-- Logs -->
@@ -337,6 +353,7 @@
     let allNodes = [];
     let currentView = 'dashboard';
     let logsTimer = null;
+    let filesTimer = null;
 
     // ── View switching ──────────────────────────────────────────────────────
     function showView(view, el) {
@@ -347,7 +364,11 @@
         currentView = view;
 
         clearInterval(logsTimer); logsTimer = null;
-        if (view === 'files')  { updateNodeSelect(); loadFiles(); }
+        clearInterval(filesTimer); filesTimer = null;
+        if (view === 'files')  {
+            updateNodeSelect(); loadFiles();
+            filesTimer = setInterval(() => { if (currentView === 'files') loadFiles(); }, 5000);
+        }
         if (view === 'logs')   { populateLogSelector(); startLogsRefresh(); }
         if (view === 'beheer') loadContainersTable();
     }
@@ -385,14 +406,21 @@
     function renderDashboard() {
         drawRing(allNodes);
         document.getElementById('dashboard-nodes').innerHTML = allNodes.length
-            ? allNodes.map(n => `<tr>
-                <td>${esc(n.nodeName || '-')}</td>
-                <td>${n.currentID ?? n.nodeId}</td>
-                <td>${esc(n.ip)}</td>
-                <td>${n.previousID ?? '-'}</td>
-                <td>${n.nextID ?? '-'}</td>
-                <td><span class="status-dot dot-green"></span>online</td>
-              </tr>`).join('')
+            ? allNodes.map(n => {
+                const name = n.nodeName || n.containerName || '-';
+                const id   = n.currentID ?? n.nodeId ?? '-';
+                const prev = n.previousID ?? '-';
+                const next = n.nextID ?? '-';
+                const dot  = n.status === 'online' ? 'dot-green' : 'dot-red';
+                return `<tr>
+                    <td>${esc(name)}</td>
+                    <td>${id}</td>
+                    <td>${esc(n.ip)}</td>
+                    <td>${prev}</td>
+                    <td>${next}</td>
+                    <td><span class="status-dot ${dot}"></span>${n.status || 'unknown'}</td>
+                </tr>`;
+            }).join('')
             : '<tr><td colspan="6" style="color:#666">No nodes</td></tr>';
     }
 
@@ -505,7 +533,7 @@
                 'font-size': 11, 'font-weight': 'bold',
                 'font-family': 'Segoe UI, sans-serif'
             });
-            name.textContent = p.node.nodeName || p.node.ip;
+            name.textContent = p.node.nodeName || p.node.containerName || p.node.ip;
             g.appendChild(name);
 
             // Node ID
@@ -533,17 +561,21 @@
     // ── Nodes view ──────────────────────────────────────────────────────────
     function renderNodeCards() {
         document.getElementById('nodes-grid').innerHTML = allNodes.length
-            ? allNodes.map(n => `
-                <div class="node-card">
-                    <h3>${esc(n.nodeName || n.ip)}</h3>
-                    <div class="node-field"><span class="label">Node ID</span><span class="value">${n.currentID ?? n.nodeId}</span></div>
+            ? allNodes.map(n => {
+                const name = n.nodeName || n.containerName || n.ip;
+                const id   = n.currentID ?? n.nodeId ?? '-';
+                const dot  = n.status === 'online' ? 'dot-green' : 'dot-red';
+                return `<div class="node-card">
+                    <h3>${esc(name)}</h3>
+                    <div class="node-field"><span class="label">Node ID</span><span class="value">${id}</span></div>
                     <div class="node-field"><span class="label">IP</span><span class="value">${esc(n.ip)}</span></div>
                     <div class="node-field"><span class="label">Prev ID</span><span class="value">${n.previousID ?? '-'}</span></div>
                     <div class="node-field"><span class="label">Next ID</span><span class="value">${n.nextID ?? '-'}</span></div>
                     <div class="node-field"><span class="label">Status</span><span class="value">
-                        <span class="status-dot dot-green"></span>online
+                        <span class="status-dot ${dot}"></span>${n.status || 'unknown'}
                     </span></div>
-                </div>`).join('')
+                </div>`;
+            }).join('')
             : '<div style="color:#666;font-size:13px;">No nodes found</div>';
     }
 
@@ -561,10 +593,15 @@
         const ip = document.getElementById('node-select').value;
         if (!ip) return;
 
+        const node = allNodes.find(n => n.ip === ip) || {};
+        const container = node.containerName || '';
+
         try {
             const files = await apiFetch('/api/node/' + ip + '/files/local');
             document.getElementById('local-files').innerHTML = files.length
-                ? files.map(f => `<tr><td>${esc(f)}</td></tr>`).join('')
+                ? files.map(f => `<tr style="cursor:pointer" onclick="openFile('${esc(ip)}','${esc(container)}','${esc(f)}')" title="Click to edit">
+                    <td>&#128196; ${esc(f)}</td>
+                  </tr>`).join('')
                 : '<tr><td style="color:#666">No local files</td></tr>';
         } catch {
             document.getElementById('local-files').innerHTML =
@@ -607,6 +644,35 @@
             showToast(filename + ' unlocked');
             loadFiles();
         } catch (e) { showToast('Error: ' + e.message); }
+    }
+
+    async function openFile(ip, container, filename) {
+        document.getElementById('file-name').value = filename;
+        document.getElementById('file-content').value = 'Loading...';
+        try {
+            const res = await fetch(`/api/node/${ip}/readFile?filename=${encodeURIComponent(filename)}&container=${encodeURIComponent(container)}`);
+            document.getElementById('file-content').value = res.ok ? await res.text() : '';
+        } catch { document.getElementById('file-content').value = ''; }
+    }
+
+    async function saveFile() {
+        const ip = document.getElementById('node-select').value;
+        const node = allNodes.find(n => n.ip === ip) || {};
+        const containerName = node.containerName;
+        const filename = document.getElementById('file-name').value.trim();
+        const content = document.getElementById('file-content').value;
+        if (!containerName) { showToast('No container known for this node'); return; }
+        if (!filename) { showToast('Enter a filename'); return; }
+        try {
+            await apiPost('/api/node/' + ip + '/createFile', { containerName, filename, content });
+            showToast(filename + ' saved');
+            loadFiles();
+        } catch (e) { showToast('Error: ' + e.message); }
+    }
+
+    function clearEditor() {
+        document.getElementById('file-name').value = '';
+        document.getElementById('file-content').value = '';
     }
 
     // ── Logs view ───────────────────────────────────────────────────────────

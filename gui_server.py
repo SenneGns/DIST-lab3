@@ -46,6 +46,19 @@ def get_node_image():
     return img or "dist-lab3-node-a"
 
 
+def get_container_data_path(container):
+    try:
+        r = subprocess.run(
+            ["docker", "inspect", container, "--format",
+             "{{(index .Mounts 0).Destination}}"],
+            capture_output=True, text=True, timeout=5
+        )
+        dest = r.stdout.strip()
+        return dest if dest else f"/data/{container}"
+    except Exception:
+        return f"/data/{container}"
+
+
 def build_node_list():
     """Merges naming server nodes and running Docker containers into one list."""
     nodes_by_ip = {}
@@ -163,6 +176,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 self._proxy(f"http://{rest[:-len('/files/replicated')]}:{NODE_PORT}/node/files/replicated")
             elif rest.endswith("/info"):
                 self._proxy(f"http://{rest[:-len('/info')]}:{NODE_PORT}/node/info")
+            elif rest.endswith("/readFile"):
+                ip = rest[:-len("/readFile")]
+                self._read_file(ip, qs.get("filename", [""])[0], qs.get("container", [""])[0])
             else:
                 self.send_response(404); self.end_headers()
         else:
@@ -189,6 +205,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
         elif path.startswith("/api/node/") and path.endswith("/unlock"):
             ip = path[len("/api/node/"):-len("/unlock")]
             self._node_lock_action(ip, data.get("filename", ""), "unlock")
+        elif path.startswith("/api/node/") and path.endswith("/createFile"):
+            ip = path[len("/api/node/"):-len("/createFile")]
+            self._create_file(data)
         else:
             self.send_response(404); self.end_headers()
 
@@ -296,6 +315,44 @@ class Handler(http.server.BaseHTTPRequestHandler):
             with urllib.request.urlopen(req, timeout=3):
                 pass
             self.send_json(200, {"ok": True})
+        except Exception as e:
+            self.send_json(500, {"error": str(e)})
+
+    def _read_file(self, ip, filename, container):
+        if not filename or not container:
+            self.send_json(400, {"error": "filename and container required"})
+            return
+        data_path = get_container_data_path(container)
+        try:
+            r = subprocess.run(
+                ["docker", "exec", container, "cat", f"{data_path}/{filename}"],
+                capture_output=True, text=True, timeout=5
+            )
+            if r.returncode == 0:
+                self.send_text(200, r.stdout)
+            else:
+                self.send_json(404, {"error": "file not found"})
+        except Exception as e:
+            self.send_json(500, {"error": str(e)})
+
+    def _create_file(self, data):
+        container = data.get("containerName", "").strip()
+        filename = data.get("filename", "").strip()
+        content = data.get("content", "")
+        if not container or not filename:
+            self.send_json(400, {"error": "containerName and filename required"})
+            return
+        data_path = get_container_data_path(container)
+        try:
+            r = subprocess.run(
+                ["docker", "exec", "-i", container, "sh", "-c",
+                 f"cat > '{data_path}/{filename}'"],
+                input=content, capture_output=True, text=True, timeout=10
+            )
+            if r.returncode == 0:
+                self.send_json(200, {"ok": True})
+            else:
+                self.send_json(500, {"error": r.stderr.strip()})
         except Exception as e:
             self.send_json(500, {"error": str(e)})
 
