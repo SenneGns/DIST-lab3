@@ -88,7 +88,7 @@ public class NodeHttpServer {
             String filename = params.get("filename");
             if (filename != null) {
                 new File(replicaFilesPath, filename).delete();
-                new FileLog(replicaFilesPath).removeEntry(filename);
+                fileLog.removeEntry(filename);
                 System.out.println("[NodeServer] Replica verwijderd: " + filename);
             }
             sendResponse(exchange, 200, "OK");
