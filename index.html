@@ -1,465 +1,662 @@
 <!DOCTYPE html>
-<html lang="nl">
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Distributed Systems Dashboard</title>
-<style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: system-ui, sans-serif; background: #0f1117; color: #e0e0e0; min-height: 100vh; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Monitor</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
-header {
-  background: #1a1d26; padding: 14px 24px;
-  border-bottom: 1px solid #2d3148;
-  display: flex; align-items: center; justify-content: space-between;
-}
-header h1 { font-size: 1.1rem; color: #7dd3fc; font-weight: 600; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #1a1a2e;
+            color: #e0e0e0;
+            display: flex;
+            height: 100vh;
+        }
 
-nav { display: flex; gap: 4px; }
-.tab-btn {
-  background: none; border: none; color: #9ca3af;
-  padding: 7px 16px; border-radius: 6px; cursor: pointer;
-  font-size: 0.88rem; transition: all 0.15s;
-}
-.tab-btn:hover { background: #2d3148; color: #e0e0e0; }
-.tab-btn.active { background: #2563eb; color: white; }
+        /* Sidebar */
+        .sidebar {
+            width: 200px;
+            background: #0f0f1a;
+            padding: 20px 0;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
 
-.tab-panel { display: none; padding: 24px; }
-.tab-panel.active { display: block; }
+        .sidebar-logo {
+            padding: 10px 20px 30px;
+            font-size: 13px;
+            color: #999;
+            border-bottom: 1px solid #2a2a3e;
+            margin-bottom: 20px;
+        }
 
-.section-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 18px;
-}
-.section-header h2 { font-size: 1rem; color: #e0e0e0; font-weight: 600; }
-.refresh-info { font-size: 0.75rem; color: #6b7280; }
+        .sidebar-logo span {
+            display: block;
+            font-size: 11px;
+            color: #B5006E;
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
 
-/* ── Cards ── */
-.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
-.card {
-  background: #1a1d26; border: 1px solid #2d3148;
-  border-radius: 10px; padding: 16px; cursor: pointer;
-  transition: border-color 0.15s;
-}
-.card:hover { border-color: #3b82f6; }
-.card.selected { border-color: #3b82f6; background: #1e2336; }
+        .nav-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            color: #aaa;
+            font-size: 14px;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
 
-.card-title {
-  font-size: 0.95rem; font-weight: 600; color: #7dd3fc;
-  margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
-}
-.badge {
-  font-size: 0.68rem; background: #2d3148; color: #9ca3af;
-  padding: 2px 8px; border-radius: 12px; font-weight: normal;
-}
-.kv { display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 5px; }
-.kv-key { color: #9ca3af; }
-.kv-val { color: #e0e0e0; font-family: monospace; }
+        .nav-item:hover { color: #fff; background: #1e1e32; }
 
-/* ── Detail panel ── */
-.detail-panel {
-  background: #1a1d26; border: 1px solid #2d3148;
-  border-radius: 10px; padding: 20px; margin-top: 20px;
-}
-.detail-title {
-  font-size: 0.78rem; font-weight: 600; color: #9ca3af;
-  margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.06em;
-}
-.files-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .nav-item.active {
+            color: #fff;
+            background: #1e1e32;
+            border-left: 3px solid #B5006E;
+        }
 
-.file-list { list-style: none; }
-.file-list li {
-  font-size: 0.82rem; padding: 5px 8px; border-radius: 4px;
-  margin-bottom: 3px; display: flex; align-items: center; gap: 6px;
-}
-.file-list li:nth-child(odd) { background: #141720; }
+        /* Main */
+        .main {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px;
+        }
 
-/* ── Table ── */
-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-th {
-  text-align: left; padding: 8px 10px; color: #6b7280;
-  border-bottom: 1px solid #2d3148; font-weight: 500;
-}
-td { padding: 7px 10px; border-bottom: 1px solid #141720; }
-tr:hover td { background: #1e2336; }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
 
-/* ── Badges ── */
-.locked-badge {
-  background: #7f1d1d; color: #fca5a5;
-  font-size: 0.65rem; padding: 2px 6px; border-radius: 3px;
-}
-.status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-.status-up { background: #22c55e; box-shadow: 0 0 4px #22c55e; }
-.status-down { background: #ef4444; }
+        h1 {
+            font-size: 22px;
+            color: #B5006E;
+            letter-spacing: 2px;
+        }
 
-/* ── Log area ── */
-.log-area {
-  background: #0a0c14; border: 1px solid #2d3148; border-radius: 8px;
-  padding: 14px; font-family: monospace; font-size: 0.78rem;
-  white-space: pre-wrap; overflow-y: auto; max-height: 65vh;
-  color: #a3e635; line-height: 1.5;
-}
+        .refresh-info { font-size: 12px; color: #666; }
 
-/* ── Controls / Forms ── */
-.controls { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
-select, input[type=text], input[type=number] {
-  background: #1a1d26; border: 1px solid #2d3148; color: #e0e0e0;
-  padding: 7px 12px; border-radius: 6px; font-size: 0.85rem; outline: none;
-}
-select:focus, input:focus { border-color: #3b82f6; }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+        }
 
-button { padding: 7px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 0.85rem; transition: background 0.15s; }
-.btn-primary { background: #2563eb; color: white; }
-.btn-primary:hover { background: #1d4ed8; }
-.btn-danger { background: #dc2626; color: white; }
-.btn-danger:hover { background: #b91c1c; }
-.btn-sm { padding: 4px 10px; font-size: 0.75rem; }
+        .dot-green { background: #4caf50; }
+        .dot-red   { background: #f44336; }
 
-.form-section { background: #1a1d26; border: 1px solid #2d3148; border-radius: 10px; padding: 18px; margin-bottom: 20px; }
-.form-section h3 { font-size: 0.88rem; color: #9ca3af; margin-bottom: 14px; font-weight: 500; }
-.form-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
-.form-group { display: flex; flex-direction: column; gap: 5px; }
-.form-group label { font-size: 0.73rem; color: #9ca3af; }
-.form-group input { width: 190px; }
+        /* Card */
+        .card {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
 
-.alert {
-  padding: 10px 14px; border-radius: 6px; font-size: 0.85rem;
-  margin-bottom: 14px; display: none;
-}
-.alert.show { display: block; }
-.alert.success { background: #1f2a1f; border: 1px solid #166534; color: #86efac; }
-.alert.error { background: #2a1f1f; border: 1px solid #991b1b; color: #fca5a5; }
+        .card h2 {
+            font-size: 13px;
+            color: #B5006E;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
 
-.ip-hint { font-size: 0.73rem; color: #6b7280; margin-top: 3px; }
-</style>
+        /* Table */
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+
+        th {
+            text-align: left;
+            padding: 8px 12px;
+            color: #B5006E;
+            border-bottom: 1px solid #2a2a4e;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #1e1e3a;
+            color: #ccc;
+        }
+
+        tr:hover td { background: #1e2a4a; }
+
+        /* Node cards */
+        .nodes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 16px;
+        }
+
+        .node-card {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .node-card h3 {
+            font-size: 14px;
+            color: #B5006E;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #2a2a4e;
+        }
+
+        .node-field {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+
+        .node-field .label { color: #888; }
+        .node-field .value { color: #ddd; }
+
+        /* Buttons */
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            margin-top: 10px;
+        }
+
+        .btn-primary { background: #B5006E; color: white; }
+        .btn-primary:hover { background: #d4008a; }
+        .btn-danger { background: #c0392b; color: white; width: 100%; }
+        .btn-danger:hover { background: #e74c3c; }
+        .btn-sm { padding: 5px 12px; font-size: 12px; margin-top: 0; width: auto; }
+
+        /* Add form */
+        .add-form {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .form-group label { font-size: 11px; color: #888; letter-spacing: 0.5px; }
+
+        input[type="text"] {
+            background: #0f0f1a;
+            border: 1px solid #2a2a4e;
+            color: #ddd;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            width: 180px;
+        }
+
+        input[type="text"]:focus { outline: none; border-color: #B5006E; }
+
+        /* Files */
+        .files-selector {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .files-selector label { color: #888; font-size: 13px; }
+
+        select {
+            background: #0f0f1a;
+            border: 1px solid #2a2a4e;
+            color: #ddd;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        select:focus { outline: none; border-color: #B5006E; }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        /* Views */
+        .view { display: none; }
+        .view.active { display: block; }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #B5006E;
+            color: white;
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-size: 13px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        .toast.show { opacity: 1; }
+
+        /* Logs */
+        .log-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .log-area {
+            background: #0a0c14;
+            border: 1px solid #2a2a4e;
+            border-radius: 6px;
+            padding: 14px;
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            overflow-y: auto;
+            max-height: calc(100vh - 260px);
+            color: #a3e635;
+            line-height: 1.5;
+        }
+
+        .locked-badge {
+            background: #7f1d1d;
+            color: #fca5a5;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+
+        .log-controls label {
+            color: #888;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
 
-<header>
-  <h1>&#9432; Distributed Systems Dashboard</h1>
-  <nav>
-    <button class="tab-btn active" data-tab="nodes" onclick="showTab(this)">Nodes</button>
-    <button class="tab-btn" data-tab="logs" onclick="showTab(this)">Logs</button>
-    <button class="tab-btn" data-tab="beheer" onclick="showTab(this)">Beheer</button>
-  </nav>
-</header>
-
-<!-- ═══════════════════════  TAB: NODES  ═══════════════════════ -->
-<div id="tab-nodes" class="tab-panel active">
-  <div class="section-header">
-    <h2>Actieve nodes</h2>
-    <span class="refresh-info" id="nodes-ts"></span>
-  </div>
-  <div class="cards" id="node-cards">
-    <span style="color:#6b7280">Laden...</span>
-  </div>
-  <div id="node-detail"></div>
-</div>
-
-<!-- ═══════════════════════  TAB: LOGS  ════════════════════════ -->
-<div id="tab-logs" class="tab-panel">
-  <div class="section-header"><h2>Container logs</h2></div>
-  <div class="controls">
-    <select id="log-container" onchange="loadLogs()">
-      <option value="">— selecteer container —</option>
-    </select>
-    <select id="log-lines" onchange="loadLogs()">
-      <option value="50">50 regels</option>
-      <option value="100" selected>100 regels</option>
-      <option value="200">200 regels</option>
-      <option value="500">500 regels</option>
-    </select>
-    <label style="font-size:0.85rem;color:#9ca3af;display:flex;align-items:center;gap:6px;cursor:pointer;">
-      <input type="checkbox" id="log-auto" checked onchange="toggleAutoLogs()"> Auto-refresh (3s)
-    </label>
-    <button class="btn-primary" onclick="loadLogs()">&#8635; Vernieuwen</button>
-  </div>
-  <div class="log-area" id="log-output">Selecteer een container hierboven...</div>
-</div>
-
-<!-- ═══════════════════════  TAB: BEHEER  ══════════════════════ -->
-<div id="tab-beheer" class="tab-panel">
-  <div id="beheer-alert" class="alert"></div>
-
-  <div class="form-section">
-    <h3>&#43; Node toevoegen</h3>
-    <div class="form-row">
-      <div class="form-group">
-        <label>Node naam</label>
-        <input type="text" id="add-name" placeholder="bijv. Dave" oninput="onNameInput()">
-      </div>
-      <div class="form-group">
-        <label>IP adres</label>
-        <input type="text" id="add-ip" placeholder="172.20.0.13">
-        <span class="ip-hint">Vrije IP in 172.20.0.0/24</span>
-      </div>
-      <div class="form-group">
-        <label>Container naam</label>
-        <input type="text" id="add-container" placeholder="node-d">
-      </div>
-      <button class="btn-primary" onclick="addNode()">Starten</button>
+<div class="sidebar">
+    <div class="sidebar-logo">
+        <span>NETWORK MONITOR</span>
+        University of Antwerp
     </div>
-  </div>
-
-  <div class="section-header">
-    <h2>Alle containers</h2>
-    <button class="btn-primary btn-sm" onclick="loadContainersTable()">&#8635;</button>
-  </div>
-  <table>
-    <thead><tr><th>Naam</th><th>Status</th><th>Image</th><th></th></tr></thead>
-    <tbody id="container-table"><tr><td colspan="4" style="color:#6b7280">Laden...</td></tr></tbody>
-  </table>
+    <div class="nav-item active" onclick="showView('dashboard', this)">Dashboard</div>
+    <div class="nav-item" onclick="showView('nodes', this)">Nodes</div>
+    <div class="nav-item" onclick="showView('files', this)">Files</div>
+    <div class="nav-item" onclick="showView('logs', this)">Logs</div>
+    <div class="nav-item" onclick="showView('beheer', this)">Beheer</div>
 </div>
+
+<div class="main">
+    <div class="header">
+        <h1>NETWORK MONITOR</h1>
+        <span class="refresh-info" id="refresh-ts">Auto-refresh every 5s</span>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="view-dashboard" class="view active">
+        <div class="card">
+            <h2>Naming Server</h2>
+            <table>
+                <tr><td>Status</td><td id="ns-status">-</td></tr>
+                <tr><td>Nodes</td><td id="ns-count">-</td></tr>
+            </table>
+        </div>
+        <div class="card">
+            <h2>Nodes</h2>
+            <table>
+                <thead><tr><th>Name</th><th>ID</th><th>IP</th><th>Prev ID</th><th>Next ID</th><th>Status</th></tr></thead>
+                <tbody id="dashboard-nodes"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Nodes -->
+    <div id="view-nodes" class="view">
+        <div id="nodes-grid" class="nodes-grid"></div>
+    </div>
+
+    <!-- Files -->
+    <div id="view-files" class="view">
+        <div class="files-selector">
+            <label>Select node:</label>
+            <select id="node-select" onchange="loadFiles()"></select>
+        </div>
+        <div class="grid-2">
+            <div class="card">
+                <h2>Local Files</h2>
+                <table>
+                    <thead><tr><th>Filename</th></tr></thead>
+                    <tbody id="local-files"></tbody>
+                </table>
+            </div>
+            <div class="card">
+                <h2>Replicated Files</h2>
+                <table>
+                    <thead><tr><th>Filename</th><th>Owner ID</th><th>Download from</th><th>Locked</th></tr></thead>
+                    <tbody id="replicated-files"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logs -->
+    <div id="view-logs" class="view">
+        <div class="log-controls">
+            <div style="display:flex;align-items:center;gap:8px;">
+                <label style="color:#888;font-size:13px;">Container:</label>
+                <select id="log-container" onchange="loadLogs()">
+                    <option value="">— select —</option>
+                </select>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <label style="color:#888;font-size:13px;">Lines:</label>
+                <select id="log-lines" onchange="loadLogs()">
+                    <option value="50">50</option>
+                    <option value="100" selected>100</option>
+                    <option value="200">200</option>
+                    <option value="500">500</option>
+                </select>
+            </div>
+            <label class="log-controls">
+                <input type="checkbox" id="log-auto" checked> Auto-refresh (3s)
+            </label>
+            <button class="btn btn-primary btn-sm" onclick="loadLogs()">&#8635; Refresh</button>
+        </div>
+        <div class="log-area" id="log-output">Select a container above...</div>
+    </div>
+
+    <!-- Beheer -->
+    <div id="view-beheer" class="view">
+        <div class="card">
+            <h2>Add Node</h2>
+            <div class="add-form">
+                <div class="form-group">
+                    <label>NODE NAME</label>
+                    <input type="text" id="add-name" placeholder="e.g. Dave" oninput="onNameInput()">
+                </div>
+                <div class="form-group">
+                    <label>IP ADDRESS</label>
+                    <input type="text" id="add-ip" placeholder="172.20.0.13">
+                </div>
+                <div class="form-group">
+                    <label>CONTAINER NAME</label>
+                    <input type="text" id="add-container" placeholder="node-d">
+                </div>
+                <button class="btn btn-primary" onclick="addNode()">Start Node</button>
+            </div>
+        </div>
+        <div class="card">
+            <h2>All Containers</h2>
+            <table>
+                <thead><tr><th>Name</th><th>Status</th><th>Image</th><th></th></tr></thead>
+                <tbody id="container-table"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="toast"></div>
 
 <script>
-// ── State ──────────────────────────────────────────────────────────────────
-let selectedIp = null;
-let nodesTimer = null;
-let logsTimer = null;
-let activeTab = 'nodes';
+    let allNodes = [];
+    let currentView = 'dashboard';
+    let logsTimer = null;
 
-// ── Tab switching ──────────────────────────────────────────────────────────
-function showTab(btn) {
-  const tab = btn.dataset.tab;
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('tab-' + tab).classList.add('active');
-  btn.classList.add('active');
-  activeTab = tab;
+    // ── View switching ──────────────────────────────────────────────────────
+    function showView(view, el) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById('view-' + view).classList.add('active');
+        if (el) el.classList.add('active');
+        currentView = view;
 
-  clearInterval(logsTimer); logsTimer = null;
+        clearInterval(logsTimer); logsTimer = null;
 
-  if (tab === 'nodes') {
-    if (!nodesTimer) startNodesRefresh();
-  } else {
-    clearInterval(nodesTimer); nodesTimer = null;
-    if (tab === 'logs') { populateLogSelector(); startLogsRefresh(); }
-    if (tab === 'beheer') loadContainersTable();
-  }
-}
+        if (view === 'files') { updateNodeSelect(); loadFiles(); }
+        if (view === 'logs')  { populateLogSelector(); startLogsRefresh(); }
+        if (view === 'beheer') loadContainersTable();
+    }
 
-// ── Nodes tab ──────────────────────────────────────────────────────────────
-function startNodesRefresh() {
-  loadNodes();
-  nodesTimer = setInterval(loadNodes, 5000);
-}
+    // ── Toast ───────────────────────────────────────────────────────────────
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2500);
+    }
 
-async function loadNodes() {
-  try {
-    const nodes = await apiFetch('/api/nodes');
-    renderCards(nodes);
-    document.getElementById('nodes-ts').textContent =
-      'Bijgewerkt: ' + new Date().toLocaleTimeString();
-    if (selectedIp) loadNodeDetail(selectedIp);
-  } catch {
-    document.getElementById('node-cards').innerHTML =
-      '<span style="color:#ef4444">Naming server niet bereikbaar</span>';
-  }
-}
+    // ── Nodes refresh ───────────────────────────────────────────────────────
+    async function refresh() {
+        try {
+            const nodes = await apiFetch('/api/nodes');
+            allNodes = nodes;
+            document.getElementById('ns-status').innerHTML =
+                '<span class="status-dot dot-green"></span>online';
+            document.getElementById('ns-count').textContent = nodes.length;
+            document.getElementById('refresh-ts').textContent =
+                'Updated: ' + new Date().toLocaleTimeString();
+        } catch {
+            document.getElementById('ns-status').innerHTML =
+                '<span class="status-dot dot-red"></span>offline';
+            document.getElementById('ns-count').textContent = '-';
+            allNodes = [];
+        }
 
-function renderCards(nodes) {
-  const c = document.getElementById('node-cards');
-  if (!nodes.length) { c.innerHTML = '<span style="color:#6b7280">Geen nodes gevonden</span>'; return; }
-  c.innerHTML = '';
-  for (const n of nodes) {
-    const div = document.createElement('div');
-    div.className = 'card' + (n.ip === selectedIp ? ' selected' : '');
-    div.onclick = () => selectNode(n, div);
-    div.innerHTML = `
-      <div class="card-title">
-        <span class="status-dot status-up"></span>
-        ${esc(n.nodeName || 'Node')}
-        <span class="badge">ID ${esc(String(n.currentID ?? n.nodeId))}</span>
-      </div>
-      <div class="kv"><span class="kv-key">IP</span><span class="kv-val">${esc(n.ip)}</span></div>
-      <div class="kv"><span class="kv-key">Vorige ID</span><span class="kv-val">${n.previousID ?? '—'}</span></div>
-      <div class="kv"><span class="kv-key">Volgende ID</span><span class="kv-val">${n.nextID ?? '—'}</span></div>
-    `;
-    c.appendChild(div);
-  }
-}
+        renderDashboard();
+        if (currentView === 'nodes') renderNodeCards();
+        if (currentView === 'files') { updateNodeSelect(); loadFiles(); }
+    }
 
-function selectNode(node, el) {
-  selectedIp = node.ip;
-  document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
-  el.classList.add('selected');
-  loadNodeDetail(node.ip);
-}
+    function renderDashboard() {
+        document.getElementById('dashboard-nodes').innerHTML = allNodes.length
+            ? allNodes.map(n => `<tr>
+                <td>${esc(n.nodeName || '-')}</td>
+                <td>${n.currentID ?? n.nodeId}</td>
+                <td>${esc(n.ip)}</td>
+                <td>${n.previousID ?? '-'}</td>
+                <td>${n.nextID ?? '-'}</td>
+                <td><span class="status-dot dot-green"></span>online</td>
+              </tr>`).join('')
+            : '<tr><td colspan="6" style="color:#666">No nodes</td></tr>';
+    }
 
-async function loadNodeDetail(ip) {
-  const detail = document.getElementById('node-detail');
-  try {
-    const [local, replicated] = await Promise.all([
-      apiFetch('/api/node/' + ip + '/files/local'),
-      apiFetch('/api/node/' + ip + '/files/replicated'),
-    ]);
+    function renderNodeCards() {
+        document.getElementById('nodes-grid').innerHTML = allNodes.length
+            ? allNodes.map(n => `
+                <div class="node-card">
+                    <h3>${esc(n.nodeName || n.ip)}</h3>
+                    <div class="node-field"><span class="label">Node ID</span><span class="value">${n.currentID ?? n.nodeId}</span></div>
+                    <div class="node-field"><span class="label">IP</span><span class="value">${esc(n.ip)}</span></div>
+                    <div class="node-field"><span class="label">Prev ID</span><span class="value">${n.previousID ?? '-'}</span></div>
+                    <div class="node-field"><span class="label">Next ID</span><span class="value">${n.nextID ?? '-'}</span></div>
+                    <div class="node-field"><span class="label">Status</span><span class="value">
+                        <span class="status-dot dot-green"></span>online
+                    </span></div>
+                </div>`).join('')
+            : '<div style="color:#666;font-size:13px;">No nodes found</div>';
+    }
 
-    const locHtml = local.length
-      ? local.map(f => `<li>&#128196; ${esc(f)}</li>`).join('')
-      : '<li style="color:#6b7280">Geen lokale bestanden</li>';
+    // ── Files ───────────────────────────────────────────────────────────────
+    function updateNodeSelect() {
+        const sel = document.getElementById('node-select');
+        const current = sel.value;
+        sel.innerHTML = allNodes.map(n =>
+            `<option value="${esc(n.ip)}">${esc(n.nodeName || n.ip)} (${esc(n.ip)})</option>`
+        ).join('');
+        if (current) sel.value = current;
+    }
 
-    const replHtml = replicated.length
-      ? replicated.map(e => `<tr>
-          <td>${esc(e.fileName)}</td>
-          <td style="font-family:monospace;font-size:0.78rem">${esc(e.downloadLocation)}</td>
-          <td style="font-family:monospace">${e.ownerId}</td>
-          <td>${e.locked ? '<span class="locked-badge">LOCKED</span>' : '&#10003;'}</td>
-        </tr>`).join('')
-      : '<tr><td colspan="4" style="color:#6b7280">Geen replica\'s</td></tr>';
+    async function loadFiles() {
+        const ip = document.getElementById('node-select').value;
+        if (!ip) return;
 
-    detail.innerHTML = `
-      <div class="detail-panel">
-        <div class="files-grid">
-          <div>
-            <div class="detail-title">Lokale bestanden (${local.length})</div>
-            <ul class="file-list">${locHtml}</ul>
-          </div>
-          <div>
-            <div class="detail-title">Gerepliceerde bestanden (${replicated.length})</div>
-            <table>
-              <thead><tr><th>Bestand</th><th>Download van</th><th>Owner ID</th><th>Status</th></tr></thead>
-              <tbody>${replHtml}</tbody>
-            </table>
-          </div>
-        </div>
-      </div>`;
-  } catch {
-    detail.innerHTML = '<div style="margin-top:16px;color:#ef4444">Fout bij laden node details</div>';
-  }
-}
+        try {
+            const files = await apiFetch('/api/node/' + ip + '/files/local');
+            document.getElementById('local-files').innerHTML = files.length
+                ? files.map(f => `<tr><td>${esc(f)}</td></tr>`).join('')
+                : '<tr><td style="color:#666">No local files</td></tr>';
+        } catch {
+            document.getElementById('local-files').innerHTML =
+                '<tr><td style="color:#666">Unavailable</td></tr>';
+        }
 
-// ── Logs tab ───────────────────────────────────────────────────────────────
-async function populateLogSelector() {
-  const sel = document.getElementById('log-container');
-  try {
-    const containers = await apiFetch('/api/containers');
-    const current = sel.value;
-    sel.innerHTML = '<option value="">— selecteer container —</option>' +
-      containers.map(c =>
-        `<option value="${esc(c.name)}" ${c.name === current ? 'selected' : ''}>${esc(c.name)} (${c.status.split(' ')[0]})</option>`
-      ).join('');
-    if (sel.value) loadLogs();
-  } catch {
-    sel.innerHTML = '<option value="">Fout bij laden</option>';
-  }
-}
+        try {
+            const files = await apiFetch('/api/node/' + ip + '/files/replicated');
+            document.getElementById('replicated-files').innerHTML = files.length
+                ? files.map(f => `<tr>
+                    <td>${esc(f.fileName)}</td>
+                    <td>${f.ownerId}</td>
+                    <td style="font-size:12px;color:#aaa">${esc(f.downloadLocation)}</td>
+                    <td>${f.locked ? '<span class="locked-badge">LOCKED</span>' : ''}</td>
+                  </tr>`).join('')
+                : '<tr><td colspan="4" style="color:#666">No replicated files</td></tr>';
+        } catch {
+            document.getElementById('replicated-files').innerHTML =
+                '<tr><td colspan="4" style="color:#666">Unavailable</td></tr>';
+        }
+    }
 
-function startLogsRefresh() {
-  loadLogs();
-  logsTimer = setInterval(() => {
-    if (document.getElementById('log-auto').checked) loadLogs();
-  }, 3000);
-}
+    // ── Logs ────────────────────────────────────────────────────────────────
+    async function populateLogSelector() {
+        const sel = document.getElementById('log-container');
+        try {
+            const containers = await apiFetch('/api/containers');
+            const current = sel.value;
+            sel.innerHTML = '<option value="">— select —</option>' +
+                containers.map(c =>
+                    `<option value="${esc(c.name)}" ${c.name === current ? 'selected' : ''}>${esc(c.name)} (${c.status.split(' ')[0]})</option>`
+                ).join('');
+            if (sel.value) loadLogs();
+        } catch {
+            sel.innerHTML = '<option value="">Error loading</option>';
+        }
+    }
 
-function toggleAutoLogs() {
-  // checkbox state is read in the interval
-}
+    function startLogsRefresh() {
+        loadLogs();
+        logsTimer = setInterval(() => {
+            if (document.getElementById('log-auto').checked) loadLogs();
+        }, 3000);
+    }
 
-async function loadLogs() {
-  const container = document.getElementById('log-container').value;
-  if (!container) return;
-  const lines = document.getElementById('log-lines').value;
-  try {
-    const res = await fetch(`/api/logs/${container}?lines=${lines}`);
-    const text = await res.text();
-    const area = document.getElementById('log-output');
-    const atBottom = area.scrollTop + area.clientHeight >= area.scrollHeight - 20;
-    area.textContent = text || '(geen output)';
-    if (atBottom) area.scrollTop = area.scrollHeight;
-  } catch (e) {
-    document.getElementById('log-output').textContent = 'Fout: ' + e.message;
-  }
-}
+    async function loadLogs() {
+        const container = document.getElementById('log-container').value;
+        if (!container) return;
+        const lines = document.getElementById('log-lines').value;
+        try {
+            const res = await fetch(`/api/logs/${container}?lines=${lines}`);
+            const text = await res.text();
+            const area = document.getElementById('log-output');
+            const atBottom = area.scrollTop + area.clientHeight >= area.scrollHeight - 20;
+            area.textContent = text || '(no output)';
+            if (atBottom) area.scrollTop = area.scrollHeight;
+        } catch (e) {
+            document.getElementById('log-output').textContent = 'Error: ' + e.message;
+        }
+    }
 
-// ── Beheer tab ─────────────────────────────────────────────────────────────
-function onNameInput() {
-  const name = document.getElementById('add-name').value.toLowerCase().trim();
-  if (name) document.getElementById('add-container').value = 'node-' + name;
-}
+    // ── Beheer ──────────────────────────────────────────────────────────────
+    function onNameInput() {
+        const name = document.getElementById('add-name').value.toLowerCase().trim();
+        if (name) document.getElementById('add-container').value = 'node-' + name;
+    }
 
-async function addNode() {
-  const name = document.getElementById('add-name').value.trim();
-  const ip = document.getElementById('add-ip').value.trim();
-  const containerName = document.getElementById('add-container').value.trim();
-  if (!name || !ip || !containerName) {
-    showBeheerAlert('Vul alle velden in.', true); return;
-  }
-  try {
-    const data = await apiPost('/api/node/add', { name, ip, containerName });
-    showBeheerAlert(`Node "${name}" gestart (${data.containerId})`, false);
-    loadContainersTable();
-  } catch (e) {
-    showBeheerAlert('Fout: ' + e.message, true);
-  }
-}
+    async function addNode() {
+        const name = document.getElementById('add-name').value.trim();
+        const ip = document.getElementById('add-ip').value.trim();
+        const containerName = document.getElementById('add-container').value.trim();
+        if (!name || !ip || !containerName) { showToast('Fill in all fields.'); return; }
+        try {
+            const data = await apiPost('/api/node/add', { name, ip, containerName });
+            showToast(`Node "${name}" started (${data.containerId})`);
+            document.getElementById('add-name').value = '';
+            document.getElementById('add-ip').value = '';
+            document.getElementById('add-container').value = '';
+            loadContainersTable();
+        } catch (e) {
+            showToast('Error: ' + e.message);
+        }
+    }
 
-async function removeNode(containerName) {
-  if (!confirm(`Node "${containerName}" stoppen?`)) return;
-  try {
-    await apiPost('/api/node/remove', { containerName });
-    showBeheerAlert(`"${containerName}" gestopt`, false);
-    loadContainersTable();
-  } catch (e) {
-    showBeheerAlert('Fout: ' + e.message, true);
-  }
-}
+    async function removeNode(containerName) {
+        if (!confirm(`Stop node "${containerName}"?`)) return;
+        try {
+            await apiPost('/api/node/remove', { containerName });
+            showToast(`"${containerName}" stopped`);
+            loadContainersTable();
+        } catch (e) {
+            showToast('Error: ' + e.message);
+        }
+    }
 
-async function loadContainersTable() {
-  const tbody = document.getElementById('container-table');
-  try {
-    const containers = await apiFetch('/api/containers');
-    tbody.innerHTML = containers.map(c => {
-      const running = c.status.toLowerCase().startsWith('up');
-      const isNode = c.name.startsWith('node-') && c.name !== 'naming-server';
-      return `<tr>
-        <td><span class="status-dot ${running ? 'status-up' : 'status-down'}" style="margin-right:6px"></span>${esc(c.name)}</td>
-        <td style="color:${running ? '#86efac' : '#9ca3af'};font-size:0.82rem">${esc(c.status)}</td>
-        <td style="font-size:0.75rem;color:#6b7280">${esc(c.image)}</td>
-        <td>${isNode && running
-          ? `<button class="btn-danger btn-sm" onclick="removeNode('${esc(c.name)}')">Stoppen</button>`
-          : ''}</td>
-      </tr>`;
-    }).join('');
-  } catch {
-    tbody.innerHTML = '<tr><td colspan="4" style="color:#ef4444">Fout bij laden</td></tr>';
-  }
-}
+    async function loadContainersTable() {
+        const tbody = document.getElementById('container-table');
+        try {
+            const containers = await apiFetch('/api/containers');
+            tbody.innerHTML = containers.map(c => {
+                const running = c.status.toLowerCase().startsWith('up');
+                const isNode = c.name.startsWith('node-');
+                return `<tr>
+                    <td><span class="status-dot ${running ? 'dot-green' : 'dot-red'}"></span>${esc(c.name)}</td>
+                    <td style="color:${running ? '#4caf50' : '#888'};font-size:13px">${esc(c.status)}</td>
+                    <td style="font-size:12px;color:#666">${esc(c.image)}</td>
+                    <td>${isNode && running
+                        ? `<button class="btn btn-danger btn-sm" onclick="removeNode('${esc(c.name)}')">Stop</button>`
+                        : ''}</td>
+                </tr>`;
+            }).join('');
+        } catch {
+            tbody.innerHTML = '<tr><td colspan="4" style="color:#666">Error loading</td></tr>';
+        }
+    }
 
-function showBeheerAlert(msg, isError) {
-  const el = document.getElementById('beheer-alert');
-  el.className = 'alert show ' + (isError ? 'error' : 'success');
-  el.textContent = msg;
-  setTimeout(() => el.classList.remove('show'), 5000);
-}
+    // ── Helpers ─────────────────────────────────────────────────────────────
+    async function apiFetch(url) {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+    }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-async function apiFetch(url) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
-}
+    async function apiPost(url, body) {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        return data;
+    }
 
-async function apiPost(url, body) {
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-  return data;
-}
+    function esc(s) {
+        return String(s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
 
-function esc(s) {
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-// ── Init ───────────────────────────────────────────────────────────────────
-startNodesRefresh();
+    // ── Init ────────────────────────────────────────────────────────────────
+    refresh();
+    setInterval(refresh, 5000);
 </script>
 </body>
 </html>
