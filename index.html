@@ -254,29 +254,14 @@
 
     <!-- Files -->
     <div id="view-files" class="view">
-        <div class="files-selector">
-            <label>Select node:</label>
-            <select id="node-select" onchange="loadFiles()"></select>
-        </div>
-        <div class="grid-2">
-            <div class="card">
-                <h2>Local Files</h2>
-                <table>
-                    <thead><tr><th>Filename</th></tr></thead>
-                    <tbody id="local-files"></tbody>
-                </table>
-            </div>
-            <div class="card">
-                <h2>Replicated Files</h2>
-                <table>
-                    <thead><tr><th>Filename</th><th>Owner ID</th><th>Download from</th><th>Status</th><th></th></tr></thead>
-                    <tbody id="replicated-files"></tbody>
-                </table>
-            </div>
-        </div>
-        <div class="card" style="margin-top:0">
+        <div id="files-grid"></div>
+        <div class="card">
             <h2>Create / Edit File</h2>
             <div class="add-form" style="margin-bottom:12px">
+                <div class="form-group">
+                    <label>NODE</label>
+                    <select id="editor-node" style="width:200px"></select>
+                </div>
                 <div class="form-group">
                     <label>FILENAME</label>
                     <input type="text" id="file-name" placeholder="example.txt">
@@ -581,53 +566,82 @@
 
     // ── Files view ──────────────────────────────────────────────────────────
     function updateNodeSelect() {
-        const sel = document.getElementById('node-select');
+        // kept for compatibility with refresh() call
+        updateEditorNodeSelect();
+    }
+
+    function updateEditorNodeSelect() {
+        const sel = document.getElementById('editor-node');
         const cur = sel.value;
-        sel.innerHTML = allNodes.map(n =>
-            `<option value="${esc(n.ip)}">${esc(n.nodeName || n.ip)} (${esc(n.ip)})</option>`
-        ).join('');
+        sel.innerHTML = allNodes
+            .filter(n => n.containerName)
+            .map(n => `<option value="${esc(n.ip)}">${esc(n.nodeName || n.containerName)} (${esc(n.ip)})</option>`)
+            .join('');
         if (cur) sel.value = cur;
     }
 
     async function loadFiles() {
-        const ip = document.getElementById('node-select').value;
-        if (!ip) return;
-
-        const node = allNodes.find(n => n.ip === ip) || {};
-        const container = node.containerName || '';
-
-        try {
-            const files = await apiFetch('/api/node/' + ip + '/files/local');
-            document.getElementById('local-files').innerHTML = files.length
-                ? files.map(f => `<tr style="cursor:pointer" onclick="openFile('${esc(ip)}','${esc(container)}','${esc(f)}')" title="Click to edit">
-                    <td>&#128196; ${esc(f)}</td>
-                  </tr>`).join('')
-                : '<tr><td style="color:#666">No local files</td></tr>';
-        } catch {
-            document.getElementById('local-files').innerHTML =
-                '<tr><td style="color:#666">Unavailable</td></tr>';
+        const grid = document.getElementById('files-grid');
+        if (!allNodes.length) {
+            grid.innerHTML = '<div style="color:#666;font-size:13px;margin-bottom:20px">No nodes active</div>';
+            return;
         }
+        updateEditorNodeSelect();
 
-        try {
-            const files = await apiFetch('/api/node/' + ip + '/files/replicated');
-            document.getElementById('replicated-files').innerHTML = files.length
-                ? files.map(f => {
-                    const lockBtn = f.locked
-                        ? `<button class="btn btn-sm" style="background:#27ae60;color:white" onclick="unlockFile('${esc(ip)}','${esc(f.fileName)}')">Unlock</button>`
-                        : `<button class="btn btn-sm" style="background:#B5006E;color:white" onclick="lockFile('${esc(ip)}','${esc(f.fileName)}')">Lock</button>`;
-                    return `<tr>
-                        <td>${esc(f.fileName)}</td>
-                        <td>${f.ownerId}</td>
-                        <td style="font-size:12px;color:#aaa">${esc(f.downloadLocation)}</td>
-                        <td>${f.locked ? '<span class="locked-badge">LOCKED</span>' : '<span style="color:#666">—</span>'}</td>
-                        <td>${lockBtn}</td>
-                    </tr>`;
-                }).join('')
-                : '<tr><td colspan="5" style="color:#666">No replicated files</td></tr>';
-        } catch {
-            document.getElementById('replicated-files').innerHTML =
-                '<tr><td colspan="5" style="color:#666">Unavailable</td></tr>';
-        }
+        const panels = await Promise.all(allNodes.map(async n => {
+            const ip = n.ip;
+            const container = n.containerName || '';
+            const name = esc(n.nodeName || n.containerName || ip);
+
+            let localHtml = '';
+            try {
+                const files = await apiFetch('/api/node/' + ip + '/files/local');
+                localHtml = files.length
+                    ? files.map(f => `<tr style="cursor:pointer" title="Click to edit"
+                          onclick="openFile('${esc(ip)}','${esc(container)}','${esc(f)}')">
+                          <td>&#128196; ${esc(f)}</td></tr>`).join('')
+                    : '<tr><td style="color:#666">No local files</td></tr>';
+            } catch { localHtml = '<tr><td style="color:#666">Unavailable</td></tr>'; }
+
+            let replHtml = '';
+            try {
+                const files = await apiFetch('/api/node/' + ip + '/files/replicated');
+                replHtml = files.length
+                    ? files.map(f => {
+                        const lockBtn = f.locked
+                            ? `<button class="btn btn-sm" style="background:#27ae60;color:white"
+                                 onclick="unlockFile('${esc(ip)}','${esc(f.fileName)}')">Unlock</button>`
+                            : `<button class="btn btn-sm" style="background:#B5006E;color:white"
+                                 onclick="lockFile('${esc(ip)}','${esc(f.fileName)}')">Lock</button>`;
+                        return `<tr>
+                            <td>${esc(f.fileName)}</td>
+                            <td style="font-size:11px;color:#aaa">${esc(f.downloadLocation)}</td>
+                            <td>${f.locked ? '<span class="locked-badge">LOCKED</span>' : '<span style="color:#555">—</span>'}</td>
+                            <td>${lockBtn}</td>
+                        </tr>`;
+                    }).join('')
+                    : '<tr><td colspan="4" style="color:#666">No replicas</td></tr>';
+            } catch { replHtml = '<tr><td colspan="4" style="color:#666">Unavailable</td></tr>'; }
+
+            return `<div class="card">
+                <h2>${name} &nbsp;<span style="font-weight:normal;color:#666;font-size:11px">${esc(ip)}</span></h2>
+                <div class="grid-2">
+                    <div>
+                        <div style="font-size:11px;color:#888;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">Local Files</div>
+                        <table><tbody>${localHtml}</tbody></table>
+                    </div>
+                    <div>
+                        <div style="font-size:11px;color:#888;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">Replicated Files</div>
+                        <table>
+                            <thead><tr><th>File</th><th>From</th><th>Status</th><th></th></tr></thead>
+                            <tbody>${replHtml}</tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>`;
+        }));
+
+        grid.innerHTML = panels.join('');
     }
 
     async function lockFile(ip, filename) {
@@ -647,16 +661,18 @@
     }
 
     async function openFile(ip, container, filename) {
+        document.getElementById('editor-node').value = ip;
         document.getElementById('file-name').value = filename;
         document.getElementById('file-content').value = 'Loading...';
         try {
             const res = await fetch(`/api/node/${ip}/readFile?filename=${encodeURIComponent(filename)}&container=${encodeURIComponent(container)}`);
             document.getElementById('file-content').value = res.ok ? await res.text() : '';
         } catch { document.getElementById('file-content').value = ''; }
+        document.getElementById('file-content').scrollIntoView({ behavior: 'smooth' });
     }
 
     async function saveFile() {
-        const ip = document.getElementById('node-select').value;
+        const ip = document.getElementById('editor-node').value;
         const node = allNodes.find(n => n.ip === ip) || {};
         const containerName = node.containerName;
         const filename = document.getElementById('file-name').value.trim();
