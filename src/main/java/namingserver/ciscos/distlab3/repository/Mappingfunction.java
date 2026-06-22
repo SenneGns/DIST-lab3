@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class Mappingfunction {
 
-    private Map<Integer, String> nodes = new ConcurrentHashMap<>();
+    private Map<Integer, String> nodes = new ConcurrentHashMap<>(); //Thead save
     private final ObjectMapper mapper = new ObjectMapper();
     private final File file = new File("nodes.json");
 
